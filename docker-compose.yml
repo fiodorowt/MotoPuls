@@ -1,0 +1,108 @@
+# Wdrożenie produkcyjne na VPS: baza + migracje + aplikacja + HTTPS (Caddy) + zadania cykliczne.
+# Wymaga pliku .env (patrz .env.example) z ustawionymi m.in. DOMAIN, APP_URL, APP_SECRET, CRON_SECRET, POSTGRES_PASSWORD.
+
+x-app-env: &app-env
+  APP_URL: ${APP_URL:?ustaw APP_URL w .env}
+  APP_SECRET: ${APP_SECRET:?ustaw APP_SECRET w .env}
+  CRON_SECRET: ${CRON_SECRET:?ustaw CRON_SECRET w .env}
+  DATABASE_URL: postgresql://motopuls:${POSTGRES_PASSWORD:?ustaw POSTGRES_PASSWORD w .env}@db:5432/motopuls
+  SMTP_HOST: ${SMTP_HOST:-}
+  SMTP_PORT: ${SMTP_PORT:-587}
+  SMTP_USER: ${SMTP_USER:-}
+  SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+  MAIL_FROM: ${MAIL_FROM:-}
+  WORKSHOP_NOTIFY_EMAIL: ${WORKSHOP_NOTIFY_EMAIL:-}
+  TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:-}
+  NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${NEXT_PUBLIC_TURNSTILE_SITE_KEY:-}
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: motopuls
+      POSTGRES_DB: motopuls
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U motopuls -d motopuls"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    # Baza nie jest wystawiona na zewnątrz – dostępna tylko w sieci wewnętrznej compose.
+
+  migrate:
+    build:
+      context: .
+      target: builder
+      args:
+        NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${NEXT_PUBLIC_TURNSTILE_SITE_KEY:-}
+    command: sh -c "npx prisma migrate deploy && npx tsx prisma/seed.ts"
+    environment:
+      <<: *app-env
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_NAME: ${ADMIN_NAME:-}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  app:
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${NEXT_PUBLIC_TURNSTILE_SITE_KEY:-}
+    restart: unless-stopped
+    environment:
+      <<: *app-env
+    volumes:
+      - uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: ${DOMAIN:?ustaw DOMAIN w .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+
+  # Co godzinę: przypomnienia (wysyłane po 9:00 dzień przed wizytą) oraz porządki i anonimizacja (RODO).
+  cron:
+    image: curlimages/curl:8.11.1
+    restart: unless-stopped
+    environment:
+      CRON_SECRET: ${CRON_SECRET}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        while true; do
+          sleep 3600
+          curl -fsS -X POST -H "Authorization: Bearer $$CRON_SECRET" http://app:3000/api/cron/reminders || true
+          curl -fsS -X POST -H "Authorization: Bearer $$CRON_SECRET" http://app:3000/api/cron/maintenance || true
+        done
+    depends_on:
+      - app
+
+volumes:
+  pgdata:
+  uploads:
+  caddy_data:
+  caddy_config:

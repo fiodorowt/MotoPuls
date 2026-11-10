@@ -1,0 +1,20 @@
+node_modules/
+.next/
+out/
+.env
+.env.local
+.pgdata/
+.pgdata-e2e/
+.mail-outbox/
+uploads/
+backups/
+src/generated/
+test-results/
+playwright-report/
+tsconfig.tsbuildinfo
+next-env.d.ts
+*.log
+
+# testy E2E
+.next-e2e
+.e2e-uploads

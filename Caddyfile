@@ -1,0 +1,16 @@
+# Caddy sam uzyskuje i odnawia certyfikat Let's Encrypt dla domeny z .env (DOMAIN).
+{$DOMAIN} {
+	encode zstd gzip
+
+	reverse_proxy app:3000 {
+		# Nadpisujemy nagłówki z adresem klienta – aplikacja na nich opiera limity żądań,
+		# więc nie mogą pochodzić od użytkownika.
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Real-IP {remote_host}
+	}
+}
+
+# Przekierowanie www → domena główna
+www.{$DOMAIN} {
+	redir https://{$DOMAIN}{uri} permanent
+}

@@ -1,0 +1,398 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  OWNER
+  EMPLOYEE
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum BookingSource {
+  ONLINE
+  ADMIN
+}
+
+enum VehicleType {
+  CAR
+  VAN
+}
+
+enum Refrigerant {
+  R134A
+  R1234YF
+  UNKNOWN
+}
+
+enum InquiryType {
+  PARTS
+  FLEET
+  CONTACT
+}
+
+enum InquiryStatus {
+  NEW
+  IN_PROGRESS
+  CLOSED
+}
+
+// ---------- Konta i bezpieczeństwo ----------
+
+model User {
+  id                 String    @id @default(cuid())
+  email              String    @unique
+  name               String
+  passwordHash       String
+  role               Role      @default(EMPLOYEE)
+  active             Boolean   @default(true)
+  mustChangePassword Boolean   @default(true)
+  /// Sekret TOTP zaszyfrowany AES-256-GCM (klucz z APP_SECRET)
+  totpSecretEnc      String?
+  totpEnabled        Boolean   @default(false)
+  /// Ostatnio użyty krok TOTP – ochrona przed ponownym użyciem kodu
+  totpLastStep       Int?
+  failedAttempts     Int       @default(0)
+  lockedUntil        DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  sessions    Session[]
+  resetTokens PasswordResetToken[]
+  notes       Note[]
+}
+
+model Session {
+  id              String   @id @default(cuid())
+  /// SHA-256 tokenu z ciasteczka – sam token nigdy nie trafia do bazy
+  tokenHash       String   @unique
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  twoFactorPassed Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  lastSeenAt      DateTime @default(now())
+  expiresAt       DateTime
+  userAgent       String?
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  tokenHash String    @unique
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  /// E-mail użytkownika lub „system” / „klient” – zachowany także po usunięciu konta
+  actor     String
+  userId    String?
+  action    String
+  entity    String
+  entityId  String?
+  details   Json?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([entity, entityId])
+}
+
+model RateLimit {
+  key         String
+  windowStart DateTime
+  count       Int      @default(0)
+
+  @@id([key, windowStart])
+  @@index([windowStart])
+}
+
+// ---------- Oferta ----------
+
+model ServiceCategory {
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  name        String
+  summary     String
+  description String
+  icon        String    @default("wrench")
+  sortOrder   Int       @default(0)
+  services    Service[]
+}
+
+model Service {
+  id                  String          @id @default(cuid())
+  categoryId          String
+  category            ServiceCategory @relation(fields: [categoryId], references: [id])
+  name                String
+  description         String          @default("")
+  /// Ceny orientacyjne w pełnych złotych
+  priceFrom           Int?
+  priceTo             Int?
+  durationMin         Int
+  active              Boolean         @default(true)
+  /// Czy przy rezerwacji pytać o rodzaj czynnika klimatyzacji
+  requiresRefrigerant Boolean         @default(false)
+  sortOrder           Int             @default(0)
+  createdAt           DateTime        @default(now())
+  bookings            BookingService[]
+
+  @@index([categoryId])
+}
+
+// ---------- Klienci i pojazdy ----------
+
+model FleetAccount {
+  id          String     @id @default(cuid())
+  companyName String
+  nip         String?
+  contactName String?
+  phone       String?
+  email       String?
+  notes       String?
+  createdAt   DateTime   @default(now())
+  customers   Customer[]
+  vehicles    Vehicle[]
+}
+
+model Customer {
+  id                 String        @id @default(cuid())
+  name               String
+  phone              String
+  email              String
+  marketingConsent   Boolean       @default(false)
+  marketingConsentAt DateTime?
+  fleetAccountId     String?
+  fleetAccount       FleetAccount? @relation(fields: [fleetAccountId], references: [id], onDelete: SetNull)
+  anonymizedAt       DateTime?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  vehicles           Vehicle[]
+  bookings           Booking[]
+  notes              Note[]
+
+  @@index([email])
+  @@index([phone])
+  @@index([name])
+}
+
+model Vehicle {
+  id             String        @id @default(cuid())
+  customerId     String?
+  customer       Customer?     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  fleetAccountId String?
+  fleetAccount   FleetAccount? @relation(fields: [fleetAccountId], references: [id], onDelete: SetNull)
+  make           String
+  model          String
+  year           Int?
+  plate          String
+  vin            String?
+  mileage        Int?
+  type           VehicleType   @default(CAR)
+  createdAt      DateTime      @default(now())
+  bookings       Booking[]
+
+  @@index([plate])
+  @@index([customerId])
+}
+
+model Note {
+  id         String   @id @default(cuid())
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  authorId   String?
+  author     User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  body       String
+  createdAt  DateTime @default(now())
+}
+
+// ---------- Rezerwacje ----------
+
+model Booking {
+  id              String        @id @default(cuid())
+  /// Nieodgadywalny token do linku klienta (256 bitów losowości)
+  token           String        @unique
+  status          BookingStatus @default(PENDING)
+  source          BookingSource @default(ONLINE)
+  startsAt        DateTime
+  endsAt          DateTime
+  bay             Int
+  customerId      String
+  customer        Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  vehicleId       String
+  vehicle         Vehicle       @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  description     String?
+  internalNote    String?
+  refrigerant     Refrigerant?
+  termsAcceptedAt DateTime?
+  reminderSentAt  DateTime?
+  cancelledAt     DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  services        BookingService[]
+  slots           BookingSlot[]
+
+  @@index([startsAt])
+  @@index([status])
+  @@index([customerId])
+}
+
+model BookingService {
+  bookingId   String
+  booking     Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  serviceId   String
+  service     Service @relation(fields: [serviceId], references: [id])
+  /// Migawka nazwy/czasu/ceny z chwili rezerwacji
+  name        String
+  durationMin Int
+  priceFrom   Int?
+  priceTo     Int?
+
+  @@id([bookingId, serviceId])
+}
+
+/// Jeden wiersz = jedno stanowisko zajęte przez jeden 15-minutowy odcinek.
+/// Unikalność (bay, slotStart) gwarantuje na poziomie bazy brak podwójnych
+/// rezerwacji – także przy równoczesnych żądaniach.
+model BookingSlot {
+  id        String   @id @default(cuid())
+  bay       Int
+  slotStart DateTime
+  bookingId String?
+  booking   Booking? @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  blockId   String?
+  block     Block?   @relation(fields: [blockId], references: [id], onDelete: Cascade)
+
+  @@unique([bay, slotStart])
+  @@index([bookingId])
+  @@index([blockId])
+}
+
+/// Blokada terminu przez administratora (urlop, serwis sprzętu itp.)
+model Block {
+  id        String        @id @default(cuid())
+  startsAt  DateTime
+  endsAt    DateTime
+  /// null = wszystkie stanowiska
+  bay       Int?
+  reason    String
+  createdBy String
+  createdAt DateTime      @default(now())
+  slots     BookingSlot[]
+
+  @@index([startsAt])
+}
+
+model ClosedDay {
+  id     String   @id @default(cuid())
+  date   DateTime @unique @db.Date
+  reason String
+}
+
+model OpeningHours {
+  /// 1 = poniedziałek … 7 = niedziela (ISO)
+  weekday Int     @id
+  closed  Boolean @default(false)
+  open    String  @default("08:00")
+  close   String  @default("17:00")
+}
+
+// ---------- Konfiguracja i treści ----------
+
+model Settings {
+  id                 Int      @id @default(1)
+  brandName          String
+  legalName          String
+  nip                String
+  street             String
+  postalCode         String
+  city               String
+  phones             String[]
+  email              String
+  facebookUrl        String
+  latitude           Float
+  longitude          Float
+  directions         String
+  tagline            String
+  about              String
+  bays               Int      @default(2)
+  autoConfirm        Boolean  @default(false)
+  cancelHoursBefore  Int      @default(24)
+  minLeadHours       Int      @default(12)
+  maxDaysAhead       Int      @default(60)
+  /// Po ilu miesiącach od ostatniej wizyty anonimizować dane klienta
+  retentionMonths    Int      @default(36)
+  pricingNote        String   @default("")
+  updatedAt          DateTime @updatedAt
+}
+
+model Testimonial {
+  id        String   @id @default(cuid())
+  author    String
+  text      String
+  rating    Int      @default(5)
+  published Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
+model ContentBlock {
+  key   String @id
+  label String
+  title String
+  body  String
+}
+
+model Media {
+  id        String   @id @default(cuid())
+  /// Nazwa pliku w katalogu uploadów (losowa, bez danych użytkownika)
+  filename  String   @unique
+  alt       String
+  width     Int
+  height    Int
+  published Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
+model EmailTemplate {
+  key     String @id
+  label   String
+  subject String
+  body    String
+}
+
+model Inquiry {
+  id           String        @id @default(cuid())
+  type         InquiryType
+  status       InquiryStatus @default(NEW)
+  name         String
+  phone        String
+  email        String
+  company      String?
+  message      String
+  data         Json?
+  internalNote String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([type, status])
+  @@index([createdAt])
+}

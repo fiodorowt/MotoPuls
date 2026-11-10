@@ -1,0 +1,261 @@
+@import "tailwindcss";
+
+/*
+ * Tokeny kolorów. Motyw ciemny jest domyślny, jasny włącza atrybut data-theme="light".
+ * Kontrast par tekst/tło pilnuje test tests/unit/contrast.test.ts – zmieniając kolory, uruchom testy.
+ */
+:root {
+  color-scheme: dark;
+  --bg: #241e20;
+  --surface: #2e2729;
+  --surface-2: #383033;
+  --line: #4a4144;
+  --line-strong: #8a7f82;
+  --fg: #ffffff;
+  --muted: #c9c2c4;
+  --accent: #f28524;
+  --accent-hover: #ff9a3d;
+  --accent-ink: #241e20;
+  --accent-text: #f28524;
+  --ok: #4ade80;
+  --danger: #f87171;
+  --warn: #facc15;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #faf8f7;
+  --surface: #ffffff;
+  --surface-2: #f1eceb;
+  --line: #ddd5d2;
+  --line-strong: #857a7d;
+  --fg: #241e20;
+  --muted: #5c5254;
+  --accent: #f28524;
+  --accent-hover: #e07413;
+  --accent-ink: #241e20;
+  --accent-text: #a84d00;
+  --ok: #15803d;
+  --danger: #b91c1c;
+  --warn: #854d0e;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-text: var(--accent-text);
+  --color-ok: var(--ok);
+  --color-danger: var(--danger);
+  --color-warn: var(--warn);
+  --font-sans: "Inter Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Archivo Variable", "Inter Variable", system-ui, sans-serif;
+  --animate-pulse-draw: pulse-draw 2.4s ease-out both;
+  --animate-pulse-beat: pulse-beat 2.8s ease-in-out infinite;
+}
+
+@keyframes pulse-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes pulse-beat {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  12% {
+    opacity: 1;
+  }
+  24% {
+    opacity: 0.7;
+  }
+  36% {
+    opacity: 1;
+  }
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-sans);
+    line-height: 1.6;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-stretch: 118%;
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  ::selection {
+    background-color: var(--accent);
+    color: var(--accent-ink);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  .container-page {
+    @apply mx-auto w-full max-w-6xl px-4 sm:px-6;
+  }
+
+  .eyebrow {
+    @apply font-display text-accent-text text-sm font-bold tracking-[0.18em] uppercase;
+    font-stretch: 118%;
+  }
+
+  .btn {
+    @apply font-display inline-flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-md border border-transparent px-5 py-2.5 text-base font-bold tracking-wide no-underline transition-colors disabled:cursor-not-allowed disabled:opacity-60;
+    font-stretch: 112%;
+  }
+
+  /* Ciemny tekst na pomarańczowym: 6,6:1. Biały miałby ok. 2,6:1 – nie spełnia WCAG AA. */
+  .btn-primary {
+    @apply bg-accent text-accent-ink hover:bg-accent-hover;
+  }
+
+  .btn-secondary {
+    @apply border-line-strong text-fg hover:bg-surface-2 bg-transparent;
+  }
+
+  .btn-danger {
+    @apply border-danger text-danger hover:bg-surface-2 bg-transparent;
+  }
+
+  .btn-sm {
+    @apply min-h-10 px-3 py-1.5 text-sm;
+  }
+
+  .card {
+    @apply border-line bg-surface rounded-xl border p-5 sm:p-6;
+  }
+
+  .label {
+    @apply text-fg mb-1.5 block text-sm font-semibold;
+  }
+
+  .input {
+    @apply border-line-strong bg-surface text-fg placeholder:text-muted block min-h-12 w-full rounded-md border px-3 py-2 text-base;
+  }
+
+  .input[aria-invalid="true"] {
+    @apply border-danger;
+  }
+
+  .field-error {
+    @apply text-danger mt-1.5 text-sm font-medium;
+  }
+
+  .link {
+    @apply text-accent-text underline underline-offset-4 hover:no-underline;
+  }
+
+  .prose-mp {
+    @apply text-muted max-w-3xl space-y-4;
+  }
+
+  .prose-mp h2 {
+    @apply text-fg mt-10 text-2xl;
+  }
+
+  .prose-mp h3 {
+    @apply text-fg mt-6 text-lg;
+  }
+
+  .prose-mp ul {
+    @apply list-disc space-y-1.5 pl-6;
+  }
+
+  .prose-mp ol {
+    @apply list-decimal space-y-1.5 pl-6;
+  }
+
+  .prose-mp a {
+    @apply text-accent-text underline underline-offset-4;
+  }
+
+  .prose-mp strong {
+    @apply text-fg;
+  }
+
+  .badge {
+    @apply border-line-strong inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap;
+  }
+
+  .table-mp {
+    @apply w-full border-collapse text-left text-sm;
+  }
+
+  .table-mp th {
+    @apply border-line text-muted border-b px-3 py-2 font-semibold;
+  }
+
+  .table-mp td {
+    @apply border-line border-b px-3 py-2.5 align-top;
+  }
+
+  /* Rysowanie linii pulsu w hero; pathLength="1" na ścieżce */
+  .pulse-draw {
+    stroke-dasharray: 1;
+    animation: var(--animate-pulse-draw);
+  }
+
+  .pulse-beat {
+    animation: var(--animate-pulse-beat);
+  }
+
+  .turbo-spin {
+    animation: spin 1.1s linear infinite;
+    transform-origin: center;
+  }
+
+  dialog.modal {
+    @apply border-line bg-surface text-fg m-auto w-[min(92vw,40rem)] rounded-xl border p-0;
+  }
+
+  dialog.modal::backdrop {
+    background: rgb(0 0 0 / 0.65);
+  }
+}
