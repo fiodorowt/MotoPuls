@@ -8,7 +8,7 @@ Zasada 5 CLAUDE.md: wyłącznie dane testowe, jednorazowa baza, poczta do `.mail
 | Poziom | Narzędzie | Gdzie | Baza | Komenda | Stan |
 |---|---|---|---|---|---|
 | Jednostkowe | Vitest | `tests/unit/**/*.test.ts` | brak | `npm test` | [FAKT] 3 pliki, 54 testy zielone (kod.md D3) |
-| Integracyjne | Vitest (osobny projekt) | `tests/integration/**/*.test.ts` | embedded-postgres, jednorazowa, migracje + seed | `npm run test:int` | DO ZROBIENIA (MP-006) |
+| Integracyjne | Vitest (osobny projekt) | `tests/integration/**/*.test.ts` | embedded-postgres, jednorazowa, migracje + seed (port 54331) | `npm run test:int` | [FAKT] zrobione (MP-006): `vitest.integration.config.ts`, baza na porcie 54331, `.pgdata-int` usuwany po teście; poczta przechwytywana w pamięci (`tests/integration/mail.ts`) |
 | E2E | Playwright | `tests/e2e/*.spec.ts`, wspólne `shared.ts` | `scripts/e2e-server.ts` (embedded-postgres, port 3100, `SMTP_HOST=""`) | `npm run test:e2e` | [FAKT] 2 pliki; `workers: 1`, kolejność ma znaczenie |
 | Statyczne | ESLint, tsc, build | — | — | `npm run lint`, `typecheck`, `build` | [FAKT] zielone 2026-11-13 |
 | Wydajność | Lighthouse CLI, curl | — | produkcja tylko do odczytu (GET) | ręcznie | DO ZROBIENIA (MP-004, MP-043) |
@@ -136,6 +136,23 @@ Istniejące `01-booking.spec.ts` (przepływ 5 kroków, `.ics`, CSP, token nieist
 | MP-031…MP-035 | T5.1-T5.6 |
 | MP-037, MP-039, MP-041, MP-047, MP-049 | T8.5, T8.4, T8.6, T8.7, T8.8 |
 | MP-050…MP-057 | T7.1-T7.6 |
+
+## Pokrycie etapu 1 (implementacja `mp-rezerwacje`)
+
+| Zadanie | Testy | Gdzie |
+|---|---|---|
+| MP-006, MP-007 | T1.1-T1.6 | `tests/integration/concurrency.test.ts` |
+| MP-008 | T2.1-T2.7, T3.1, T3.3, T3.4 | `tests/integration/status.test.ts` (T3.2 i T3.7 pokrywa `tests/unit/slots.test.ts`) |
+| MP-011 | T2.8 | `tests/integration/reject.test.ts`, E2E `03-booking-flows.spec.ts` |
+| MP-012 | (bez numeru w planie) przypomnienie o PENDING | `tests/integration/pending-digest.test.ts` |
+| MP-013 | T3.5 | `tests/unit/schedule-warnings.test.ts`, `tests/integration/move-warnings.test.ts`, E2E (formularz przeniesienia; przeciąganie w kalendarzu nie ma testu E2E) |
+| MP-002 | stan poczty | `tests/unit/mail-status.test.ts` |
+| MP-009 | T4.1-T4.4 | `tests/e2e/03-booking-flows.spec.ts` (sesje pracowników z bazy testowej: `tests/e2e/db.ts`) |
+| MP-017, MP-018, MP-019 | T8.2, T8.3, loader | `tests/e2e/03-booking-flows.spec.ts` |
+
+Uwaga: `(public)/loading.tsx` powoduje strumieniowanie odpowiedzi ze statusem 200, więc strony wywołujące `notFound()`
+(np. `rezerwacja/[token]`, w przyszłości `uslugi/[slug]`) leżą w grupie `(public-detail)`, poza granicą ładowania. Test
+"link z nieistniejącym tokenem" (404) pilnuje tego w regresji.
 
 ## Wyniki
 (uzupełnia `mp-tester` po każdym etapie: data, gałąź, commit, PASS/FAIL per ID, dowody, werdykt)

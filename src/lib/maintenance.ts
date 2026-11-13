@@ -48,7 +48,7 @@ export async function anonymizeCustomer(customerId: string, actor: { email: stri
       },
     });
     await tx.vehicle.updateMany({ where: { customerId }, data: { plate: "—", vin: null, mileage: null } });
-    await tx.booking.updateMany({ where: { customerId }, data: { description: null, internalNote: null } });
+    await tx.booking.updateMany({ where: { customerId }, data: { description: null, internalNote: null, cancelReason: null } });
     await tx.note.deleteMany({ where: { customerId } });
     // Aktywne wizyty tracą sens bez danych kontaktowych – zwalniamy ich terminy.
     const active = await tx.booking.findMany({

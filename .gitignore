@@ -4,7 +4,7 @@ out/
 .env
 .env.local
 .pgdata/
-.pgdata-e2e/
+.pgdata-e2e*/
 .mail-outbox/
 uploads/
 backups/

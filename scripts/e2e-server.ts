@@ -9,9 +9,9 @@ import { existsSync, rmSync } from "node:fs";
 import path from "node:path";
 import EmbeddedPostgres from "embedded-postgres";
 
-const DB_PORT = 54330;
+const DB_PORT = Number(process.env.E2E_DB_PORT ?? 54330);
 const APP_PORT = 3100;
-const databaseDir = path.resolve(".pgdata-e2e");
+const databaseDir = path.resolve(process.env.E2E_DB_DIR ?? ".pgdata-e2e");
 
 const env: NodeJS.ProcessEnv = {
   ...process.env,
