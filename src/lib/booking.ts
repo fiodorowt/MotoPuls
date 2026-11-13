@@ -277,11 +277,11 @@ export function canCustomerCancel(
   return booking.startsAt.getTime() - now.getTime() >= cancelHoursBefore * 3_600_000;
 }
 
-export async function cancelByCustomer(token: string): Promise<void> {
+export async function cancelByCustomer(token: string, now: Date = new Date()): Promise<void> {
   const booking = await db.booking.findUnique({ where: { token } });
   const settings = await db.settings.findUniqueOrThrow({ where: { id: 1 } });
   if (!booking) throw new BookingError("Nie znaleziono rezerwacji.");
-  if (!canCustomerCancel(booking, settings.cancelHoursBefore)) {
+  if (!canCustomerCancel(booking, settings.cancelHoursBefore, now)) {
     throw new BookingError("Tej rezerwacji nie można już anulować online. Zadzwoń do warsztatu.");
   }
   await changeBookingStatus(booking.id, "CANCELLED", { email: "klient" });
