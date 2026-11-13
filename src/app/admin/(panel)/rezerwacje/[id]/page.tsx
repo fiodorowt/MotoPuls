@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ActionButton, ActionForm } from "@/components/admin/ActionForm";
 import { PageHeader, Section, StatusBadge } from "@/components/admin/ui";
-import { Field, SelectField, TextAreaField } from "@/components/form";
+import { CheckboxField, Field, SelectField, TextAreaField } from "@/components/form";
 import { requireUser } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import {
@@ -176,6 +176,11 @@ export default async function BookingPage({ params }: { params: Promise<{ id: st
                     </option>
                   ))}
                 </SelectField>
+                <div className="sm:col-span-3">
+                  <CheckboxField name="force">
+                    Potwierdzam przeniesienie poza godziny pracy, na święto lub dzień wolny (wymagane tylko przy ostrzeżeniu)
+                  </CheckboxField>
+                </div>
                 <div className="sm:col-span-3">
                   <ActionButton className="btn btn-secondary btn-sm">Przenieś</ActionButton>
                 </div>

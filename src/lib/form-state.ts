@@ -3,6 +3,8 @@ export interface FormState {
   ok: boolean;
   message?: string;
   errors?: Record<string, string>;
+  /** Akcja wymaga potwierdzenia (ostrzeżenie, nie błąd): ponów ją z `force` po zgodzie użytkownika */
+  needsConfirm?: boolean;
   /** Wartości do ponownego wypełnienia formularza po błędzie */
   values?: Record<string, string>;
 }

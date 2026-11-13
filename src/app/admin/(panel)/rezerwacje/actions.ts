@@ -7,6 +7,7 @@ import { audit } from "@/lib/audit";
 import { requireUser } from "@/lib/auth/session";
 import {
   BookingError,
+  MoveWarningError,
   SlotTakenError,
   changeBookingStatus,
   createBlock,
@@ -65,11 +66,19 @@ const rescheduleSchema = z.object({
   date: calendarDate,
   time: quarter,
   bay: f.optInt(1, 20, "Stanowisko"),
+  force: f.checkbox,
 });
 
 export async function rescheduleBooking(_prev: FormState, formData: FormData): Promise<FormState> {
-  return runAction(formData, { schema: rescheduleSchema }, async ({ id, date, time, bay }, user) => {
-    await moveBooking(id, warsawToUtc(date, time), user, bay ?? undefined);
+  return runAction(formData, { schema: rescheduleSchema }, async ({ id, date, time, bay, force }, user) => {
+    try {
+      await moveBooking(id, warsawToUtc(date, time), user, bay ?? undefined, { force });
+    } catch (error) {
+      if (error instanceof MoveWarningError) {
+        return { ok: false, needsConfirm: true, message: `${error.message} Zaznacz potwierdzenie poniżej i przenieś ponownie.` };
+      }
+      throw error;
+    }
     return { ok: true, message: "Wizyta przeniesiona. Klient dostał e-mail z nowym terminem." };
   });
 }
@@ -81,6 +90,7 @@ async function runMove(move: (user: { email: string; id: string }) => Promise<vo
   try {
     await move(user);
   } catch (error) {
+    if (error instanceof MoveWarningError) return { ok: false, needsConfirm: true, message: error.message };
     if (error instanceof BookingError || error instanceof SlotTakenError) return { ok: false, message: error.message };
     throw error;
   }
@@ -90,22 +100,22 @@ async function runMove(move: (user: { email: string; id: string }) => Promise<vo
 
 const moveSchema = z.object({ id: f.id, iso: z.iso.datetime(), bay: z.number().int().min(1).max(20) });
 
-export async function moveBookingTo(id: string, iso: string, bay: number): Promise<FormState> {
+export async function moveBookingTo(id: string, iso: string, bay: number, force = false): Promise<FormState> {
   const parsed = moveSchema.safeParse({ id, iso, bay });
   if (!parsed.success) return { ok: false, message: "Nieprawidłowy termin." };
-  return runMove((user) => moveBooking(parsed.data.id, new Date(parsed.data.iso), user, parsed.data.bay));
+  return runMove((user) => moveBooking(parsed.data.id, new Date(parsed.data.iso), user, parsed.data.bay, { force: force === true }));
 }
 
 const moveDaySchema = z.object({ id: f.id, date: calendarDate });
 
 /** Przeniesienie na inny dzień z zachowaniem godziny (widok tygodnia). */
-export async function moveBookingToDay(id: string, date: string): Promise<FormState> {
+export async function moveBookingToDay(id: string, date: string, force = false): Promise<FormState> {
   const parsed = moveDaySchema.safeParse({ id, date });
   if (!parsed.success) return { ok: false, message: "Nieprawidłowy termin." };
   return runMove(async (user) => {
     const booking = await db.booking.findUnique({ where: { id: parsed.data.id }, select: { startsAt: true } });
     if (!booking) throw new BookingError("Nie znaleziono rezerwacji.");
-    await moveBooking(parsed.data.id, warsawToUtc(parsed.data.date, warsawTime(booking.startsAt)), user);
+    await moveBooking(parsed.data.id, warsawToUtc(parsed.data.date, warsawTime(booking.startsAt)), user, undefined, { force: force === true });
   });
 }
 
