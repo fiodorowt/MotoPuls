@@ -244,6 +244,8 @@ model Booking {
   termsAcceptedAt DateTime?
   reminderSentAt  DateTime?
   cancelledAt     DateTime?
+  /// Powód odrzucenia/anulowania przez warsztat (pokazywany klientowi w e-mailu)
+  cancelReason    String?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
   services        BookingService[]

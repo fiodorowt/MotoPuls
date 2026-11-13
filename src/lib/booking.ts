@@ -242,7 +242,9 @@ export async function changeBookingStatus(
   bookingId: string,
   to: BookingStatus,
   actor: { email: string; id?: string },
+  options: { reason?: string | null; auditAction?: string } = {},
 ): Promise<void> {
+  const reason = to === "CANCELLED" ? (options.reason?.trim() || null) : null;
   await db.$transaction(async (tx) => {
     const booking = await tx.booking.findUnique({ where: { id: bookingId } });
     if (!booking) throw new BookingError("Nie znaleziono rezerwacji.");
@@ -250,7 +252,11 @@ export async function changeBookingStatus(
     // Warunek na poprzedni status chroni przed dwiema równoległymi zmianami.
     const { count } = await tx.booking.updateMany({
       where: { id: bookingId, status: booking.status },
-      data: { status: to, cancelledAt: to === "CANCELLED" ? new Date() : undefined },
+      data: {
+        status: to,
+        cancelledAt: to === "CANCELLED" ? new Date() : undefined,
+        cancelReason: reason ?? undefined,
+      },
     });
     if (count !== 1) throw new BookingError("Status został zmieniony w międzyczasie. Odśwież stronę.");
     // Anulowanie i nieobecność zwalniają termin.
@@ -259,13 +265,28 @@ export async function changeBookingStatus(
   await audit({
     actor: actor.email,
     userId: actor.id,
-    action: "booking.status",
+    action: options.auditAction ?? "booking.status",
     entity: "Booking",
     entityId: bookingId,
-    details: { to },
+    details: reason ? { to, reason } : { to },
   });
   const mail = STATUS_MAIL[to];
   if (mail) await notifyBooking(bookingId, mail);
+}
+
+/**
+ * Odrzucenie oczekującej rezerwacji (D-10 a): to samo co anulowanie (CANCELLED, termin wolny),
+ * ale z powodem, który trafia do e-maila dla klienta i do dziennika.
+ */
+export async function rejectBooking(
+  bookingId: string,
+  reason: string | null,
+  actor: { email: string; id?: string },
+): Promise<void> {
+  const booking = await db.booking.findUnique({ where: { id: bookingId }, select: { status: true } });
+  if (!booking) throw new BookingError("Nie znaleziono rezerwacji.");
+  if (booking.status !== "PENDING") throw new BookingError("Odrzucić można tylko rezerwację oczekującą na potwierdzenie.");
+  await changeBookingStatus(bookingId, "CANCELLED", actor, { reason, auditAction: "booking.reject" });
 }
 
 export function canCustomerCancel(

@@ -18,7 +18,7 @@ import {
 } from "@/lib/labels";
 import { getSettings } from "@/lib/settings";
 import { formatDateTimePl, formatDuration, warsawDate, warsawTime } from "@/lib/time";
-import { rescheduleBooking, saveBookingNote, setBookingStatus } from "../actions";
+import { rejectPendingBooking, rescheduleBooking, saveBookingNote, setBookingStatus } from "../actions";
 
 export const metadata: Metadata = { title: "Rezerwacja" };
 
@@ -103,6 +103,12 @@ export default async function BookingPage({ params }: { params: Promise<{ id: st
                 <dd>{REFRIGERANT_LABEL[booking.refrigerant]}</dd>
               </>
             )}
+            {booking.cancelReason && (
+              <>
+                <dt className="text-muted">Powód odrzucenia</dt>
+                <dd className="whitespace-pre-wrap">{booking.cancelReason}</dd>
+              </>
+            )}
             {booking.description && (
               <>
                 <dt className="text-muted">Opis usterki</dt>
@@ -118,23 +124,43 @@ export default async function BookingPage({ params }: { params: Promise<{ id: st
               <p className="text-muted text-sm">Wizyta ma status końcowy: {BOOKING_STATUS_LABEL[booking.status]}.</p>
             ) : (
               <div className="flex flex-wrap gap-3">
-                {transitions.map((to) => {
-                  const destructive = to === "CANCELLED" || to === "NO_SHOW";
-                  return (
-                    <ActionForm
-                      key={to}
-                      action={setBookingStatus}
-                      confirm={destructive ? `${ACTION_LABEL[to]}? Termin zostanie zwolniony.` : undefined}
-                    >
-                      <input type="hidden" name="id" value={booking.id} />
-                      <input type="hidden" name="to" value={to} />
-                      <ActionButton className={destructive ? "btn btn-danger btn-sm" : "btn btn-primary btn-sm"}>{ACTION_LABEL[to]}</ActionButton>
-                    </ActionForm>
-                  );
-                })}
+                {transitions
+                  // Dla oczekującej rezerwacji anulowanie to „Odrzuć” z powodem (formularz niżej).
+                  .filter((to) => !(booking.status === "PENDING" && to === "CANCELLED"))
+                  .map((to) => {
+                    const destructive = to === "CANCELLED" || to === "NO_SHOW";
+                    return (
+                      <ActionForm
+                        key={to}
+                        action={setBookingStatus}
+                        confirm={destructive ? `${ACTION_LABEL[to]}? Termin zostanie zwolniony.` : undefined}
+                      >
+                        <input type="hidden" name="id" value={booking.id} />
+                        <input type="hidden" name="to" value={to} />
+                        <ActionButton className={destructive ? "btn btn-danger btn-sm" : "btn btn-primary btn-sm"}>{ACTION_LABEL[to]}</ActionButton>
+                      </ActionForm>
+                    );
+                  })}
               </div>
             )}
-            <p className="text-muted mt-3 text-sm">Klient dostaje e-mail przy potwierdzeniu, rozpoczęciu, zakończeniu i anulowaniu.</p>
+            {booking.status === "PENDING" && (
+              <ActionForm
+                action={rejectPendingBooking}
+                confirm="Odrzucić rezerwację? Termin zostanie zwolniony, a klient dostanie e-mail."
+                className="mt-4 space-y-3"
+              >
+                <input type="hidden" name="id" value={booking.id} />
+                <TextAreaField
+                  label="Powód odrzucenia (trafi do e-maila dla klienta)"
+                  name="reason"
+                  rows={2}
+                  maxLength={300}
+                  hint="Nie wpisuj danych osobowych."
+                />
+                <ActionButton className="btn btn-danger btn-sm">Odrzuć rezerwację</ActionButton>
+              </ActionForm>
+            )}
+            <p className="text-muted mt-3 text-sm">Klient dostaje e-mail przy potwierdzeniu, rozpoczęciu, zakończeniu, anulowaniu i odrzuceniu.</p>
           </Section>
 
           {movable && (

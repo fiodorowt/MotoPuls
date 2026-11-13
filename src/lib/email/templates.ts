@@ -9,7 +9,7 @@ export interface TemplateDef {
 const FOOTER_VARS = "{{firma}}, {{adres}}, {{telefony}}";
 
 export const TEMPLATE_VARIABLES =
-  "{{imie}}, {{termin}}, {{uslugi}}, {{pojazd}}, {{status}}, {{link}}, {{anulowanie_do}}, " + FOOTER_VARS;
+  "{{imie}}, {{termin}}, {{uslugi}}, {{pojazd}}, {{status}}, {{link}}, {{anulowanie_do}}, {{powod}}, " + FOOTER_VARS;
 
 export const DEFAULT_TEMPLATES: Record<string, TemplateDef> = {
   booking_received: {
@@ -60,6 +60,8 @@ W razie pytań zadzwoń: {{telefony}}`,
     body: `Dzień dobry {{imie}},
 
 rezerwacja na {{termin}} ({{pojazd}}) została anulowana.
+
+{{powod}}
 
 Jeśli chcesz umówić nowy termin, zrób to online lub zadzwoń: {{telefony}}`,
   },

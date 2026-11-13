@@ -5,7 +5,15 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { audit } from "@/lib/audit";
 import { requireUser } from "@/lib/auth/session";
-import { BookingError, SlotTakenError, changeBookingStatus, createBlock, createBooking, moveBooking } from "@/lib/booking";
+import {
+  BookingError,
+  SlotTakenError,
+  changeBookingStatus,
+  createBlock,
+  createBooking,
+  moveBooking,
+  rejectBooking,
+} from "@/lib/booking";
 import { db } from "@/lib/db";
 import type { FormState } from "@/lib/form-state";
 import { f, runAction } from "@/lib/admin/run";
@@ -21,6 +29,24 @@ export async function setBookingStatus(_prev: FormState, formData: FormData): Pr
   return runAction(formData, { schema: statusSchema }, async ({ id, to }, user) => {
     await changeBookingStatus(id, to, user);
     return { ok: true, message: "Status zmieniony." };
+  });
+}
+
+const rejectSchema = z.object({
+  id: f.id,
+  // Powód trafia do e-maila dla klienta; jedna linia, bez danych osobowych.
+  reason: z
+    .string()
+    .max(300, "Powód: najwyżej 300 znaków")
+    .optional()
+    .transform((v) => (v ? v.replace(/\s+/g, " ").trim() || null : null)),
+});
+
+/** Odrzucenie oczekującej rezerwacji z powodem (D-10 a); wpis w dzienniku robi `rejectBooking`. */
+export async function rejectPendingBooking(_prev: FormState, formData: FormData): Promise<FormState> {
+  return runAction(formData, { schema: rejectSchema }, async ({ id, reason }, user) => {
+    await rejectBooking(id, reason, user);
+    return { ok: true, message: "Rezerwacja odrzucona. Klient dostał e-mail." };
   });
 }
 
