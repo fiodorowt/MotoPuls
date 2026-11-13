@@ -26,9 +26,11 @@ for (const viewport of VIEWPORTS) {
     let current = "";
     const errors: string[] = [];
     page.on("console", (message) => {
-      // ZNANE (poza zakresem etapu 1): na stronie głównej CSP blokuje jeden inline style (style-src); do naprawy osobno.
-      const knownHomeCsp = current === "/" && /style-src/.test(message.text());
-      if (message.type() === "error" && !knownHomeCsp) errors.push(`${current}: ${message.text().slice(0, 140)}`);
+      // ZNANE (istnieje też w main, poza zakresem etapu 1): wbudowany <next-route-announcer> ustawia style.cssText,
+      // a CSP (src/proxy.ts) nie ma style-src-attr, więc przeglądarka zgłasza "Applying inline style violates ... style-src".
+      // Pojawia się losowo na dowolnej stronie (zależnie od tego, czy hydratacja zdąży), dlatego filtr nie zależy od adresu.
+      const knownAnnouncerCsp = /Applying inline style violates/.test(message.text());
+      if (message.type() === "error" && !knownAnnouncerCsp) errors.push(`${current}: ${message.text().slice(0, 140)}`);
     });
     for (const url of PAGES) {
       current = url;

@@ -156,3 +156,47 @@ Uwaga: `(public)/loading.tsx` powoduje strumieniowanie odpowiedzi ze statusem 20
 
 ## Wyniki
 (uzupełnia `mp-tester` po każdym etapie: data, gałąź, commit, PASS/FAIL per ID, dowody, werdykt)
+
+### Etap 1 (`mp/etap-1-rezerwacje-fundament`, HEAD 603a645 + 2 zmiany testów) - tester niezależny, 2026-11-13
+
+Środowisko: Windows, Node 22, E2E z `E2E_DB_PORT=54353 E2E_DB_DIR=.pgdata-e2e-t2` (porty 54330 i 54342 zajmują niewidoczne procesy-duchy po przerwanych biegach; patrz uwaga niżej).
+
+| Komenda | Wynik |
+|---|---|
+| `npm run lint` | PASS (0 błędów) |
+| `npm run typecheck` | PASS |
+| `npm test` | PASS: 5 plików, 62 testy |
+| `npm run test:int` | PASS: 5 plików, 76 testów (3 migracje zastosowane na czystej bazie, port 54331) |
+| `npm run test:e2e` | PASS: 22/22 (59 s), w tym nowy `02a-mail-warning.spec.ts` |
+| `npm run build` | PASS |
+| `playwright test tests/e2e/04-responsive.spec.ts --repeat-each=8` (przed poprawką filtra) | 22/24 PASS, 2 FAIL (390 i 768 px) przez błąd CSP opisany w BŁĄD-1 |
+
+Kryteria akceptacji (PASS = istnieje test, który dowodzi zachowania; sprawdzono asercje, nie tylko zielony wynik):
+
+| Zadanie | Kryterium | Wynik | Dowód |
+|---|---|---|---|
+| MP-002 | Prod bez SMTP: log jednorazowy, ostrzeżenie dla właściciela, flaga w `/api/health`; dev bez zmian | PASS | `tests/unit/mail-status.test.ts` (3); NOWE `tests/e2e/02a-mail-warning.spec.ts`: `/api/health` = `{status:"ok",mail:"disabled"}`, OWNER widzi alert, EMPLOYEE nie. Uwaga: E2E działa na buildzie produkcyjnym bez SMTP, więc tam ostrzeżenie JEST widoczne (backlog dopuszcza) |
+| MP-006 | `test:int` startuje czystą bazę i kończy bez pozostałości | PASS | `npm run test:int`: migracje, 76 testów; `.pgdata-int` nie zostaje |
+| MP-007 | T1.1-T1.6, brak osieroconych `BookingSlot` | PASS | `concurrency.test.ts` (7 testów, `Promise.allSettled`, liczenie wierszy `BookingSlot`) |
+| MP-008 | T2.1-T2.7, T3.1, T3.3, T3.4 (DST 25.10.2026 i 28.03.2027) | PASS | `status.test.ts`: macierz przejść parametryczna, 2 równoległe zmiany = jedna przechodzi, granica okna anulowania (24 h 0 min OK, minuta mniej błąd) |
+| MP-009 | T4.1-T4.4 | PASS (T4.3 słabszy, patrz uwaga) | E2E `03-booking-flows.spec.ts` testy 15-19 |
+| MP-011 | Odrzucenie zwalnia termin, mail z powodem, wpis w dzienniku; anulowanie bez zmian | PASS | `reject.test.ts` (5), E2E T2.8+T4.4 |
+| MP-012 | Mail raz dziennie, tylko gdy są zaległe PENDING, bez auto-anulowania, próg edytowalny | PASS | `pending-digest.test.ts` (8): próg, raz na dobę, równoległe uruchomienia = 1 mail, nie przed 9:00, próg 0 wyłącza, brak PII w dzienniku |
+| MP-013 | Przeniesienie poza godziny/święto bez `force` nic nie zapisuje; z `force` zapis + log; w godzinach bez zmian; `force` nie omija kolizji | PASS | `move-warnings.test.ts` (6), `schedule-warnings.test.ts`, E2E T3.5 (formularz). Przeciąganie w kalendarzu: brak testu E2E (znana luka) |
+| MP-017 | Fokus na pierwszym `aria-invalid` (390 i 1280) | PASS | E2E T8.2 x2 |
+| MP-018 | Przycisk „Spróbuj ponownie" po 500 | PASS | E2E T8.3 |
+| MP-019 | Loader zamiast pustej strony; 404 tokenu nadal 404 | PASS | E2E MP-019 + regresja „nieistniejący token" |
+| T8.1 | 10 stron x 390/768/1280: brak przewijania, 1 H1, brak błędów konsoli | PASS po poprawce filtra; flaky przed (BŁĄD-1) | `04-responsive.spec.ts` |
+
+Zmiany testów wykonane przez testera: dodano `tests/e2e/02a-mail-warning.spec.ts` (MP-002, nazwa `02a` celowo przed `03`, bo `03` zamyka wspólną pulę `db.ts`); w `04-responsive.spec.ts` filtr znanego błędu CSP nie zależy już od adresu strony.
+
+#### Błędy i uwagi
+
+| ID | Ważność | Opis | Odtworzenie | Status |
+|---|---|---|---|---|
+| BŁĄD-1 | Niska-średnia | Losowy błąd konsoli „Applying inline style violates ... style-src" na dowolnej stronie publicznej. Źródło: wbudowany `<next-route-announcer>` Next.js (`node_modules/next/dist/client/components/app-router-announcer.js:21,26`) ustawia `style.cssText`; CSP z `src/proxy.ts:16` ma tylko `style-src 'self' 'nonce-…'` (bez `style-src-attr`), więc style są blokowane. Skutek: ukryty element ogłaszający trasę (czytniki ekranu) może nie mieć stylu `position:absolute; clip…`, czyli tekst tytułu może stać się widoczny na dole strony. NIE pochodzi z gałęzi: `proxy.ts` nie jest w diffie, w komponentach brak `style=`, w HTML brak atrybutów `style`. Sonda `securitypolicyviolation`: `/` 22/25 odwiedzin, `/uslugi` 3/25, `/klimatyzacja` 0/25 (`violatedDirective: style-src-attr`, element `NEXT-ROUTE-ANNOUNCER`). Dlatego T8.1 był flaky. | `npx playwright test tests/e2e/04-responsive.spec.ts --repeat-each=8` (przed poprawką filtra: 2 z 24 padły) | Otwarte, do naprawy w kodzie (np. skrót/hash dla `style-src-attr` albo `style-src-attr 'unsafe-inline'` ocenione pod kątem ryzyka; zdecyduje właściciel/implementator). Test teraz ignoruje ten jeden komunikat |
+| UWAGA-1 | Niska | T4.3: powtórzenie akcji właściciela sesją pracownika sprawdza tylko brak nowego wpisu `settings.booking` w `AuditLog` i brak CSV, nie wartość ustawień. Wystarcza do dowodu braku zapisu, ale słabsze niż porównanie wiersza `Settings` | `tests/e2e/03-booking-flows.spec.ts` ok. linii 249-258 | Do rozważenia |
+| UWAGA-2 | Niska | Środowisko: przerwane biegi E2E zostawiają niewidoczne procesy trzymające porty 54330 i 54342 (netstat pokazuje PID bez procesu w `tasklist`). Kolejny bieg na tym porcie wiesza się na `initdb` lub nie startuje. Obejście: inny `E2E_DB_PORT` i `E2E_DB_DIR` | `netstat -ano | grep 54342` | Informacja |
+| UWAGA-3 | Informacja | `[mail] SMTP_HOST nie jest ustawiony` pojawia się w logu E2E, bo serwer E2E to build produkcyjny. Zgodne z kryterium MP-002 | log `npm run test:e2e` | OK |
+
+Werdykt etapu 1 (tester): PRZEPUSZCZAM, z warunkiem odnotowania BŁĘDU-1 (istnieje w main, nie jest regresją).
