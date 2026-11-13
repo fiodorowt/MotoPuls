@@ -92,6 +92,15 @@ Pojazd: {{pojazd}}
 
 Panel: {{link}}`,
   },
+  workshop_pending_digest: {
+    label: "Warsztat: przypomnienie o rezerwacjach czekających na decyzję",
+    subject: "Do potwierdzenia: {{liczba}} rezerwacji czeka dłużej niż {{godziny}} h",
+    body: `Te rezerwacje czekają na potwierdzenie lub odrzucenie dłużej niż {{godziny}} h (termin jest dla nich zablokowany):
+
+{{lista}}
+
+Wszystkie oczekujące: {{link}}`,
+  },
   workshop_inquiry: {
     label: "Warsztat: nowe zapytanie z formularza",
     subject: "Nowe zapytanie: {{status}}",

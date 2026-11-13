@@ -109,3 +109,30 @@ export async function sendPasswordReset(to: string, link: string): Promise<void>
   const company = await companyVars();
   await sendTemplate("password_reset", to, { ...company.vars, link }, company.footer);
 }
+
+/** Zbiorczy mail do warsztatu o rezerwacjach czekających na decyzję (bez danych osobowych klientów). */
+export async function notifyPendingDigest(
+  bookings: { id: string; startsAt: Date; createdAt: Date; vehicle: { make: string; model: string }; services: { name: string }[] }[],
+  thresholdHours: number,
+): Promise<void> {
+  const company = await companyVars();
+  const appUrl = env().APP_URL;
+  const list = bookings
+    .map(
+      (b) =>
+        `- ${formatDateTimePl(b.startsAt)}: ${b.vehicle.make} ${b.vehicle.model}, ${b.services.map((s) => s.name).join(", ")}\n  ${appUrl}/admin/rezerwacje/${b.id}`,
+    )
+    .join("\n");
+  await sendTemplate(
+    "workshop_pending_digest",
+    company.notifyTo,
+    {
+      ...company.vars,
+      liczba: String(bookings.length),
+      godziny: String(thresholdHours),
+      lista: list,
+      link: `${appUrl}/admin/rezerwacje?status=PENDING`,
+    },
+    company.footer,
+  );
+}
