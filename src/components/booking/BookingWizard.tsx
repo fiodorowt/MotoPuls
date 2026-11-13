@@ -64,7 +64,9 @@ export function BookingWizard({ categories, token, controller, autoConfirm, toda
   const [errors, setErrors] = useState<FieldErrors>({});
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [retryFrom, setRetryFrom] = useState<string | null>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
   const mounted = useRef(false);
 
   // Po zmianie kroku fokus trafia na nagłówek – czytnik ekranu ogłasza nowy krok.
@@ -72,6 +74,12 @@ export function BookingWizard({ categories, token, controller, autoConfirm, toda
     if (mounted.current) headingRef.current?.focus();
     mounted.current = true;
   }, [step]);
+
+  // Po błędzie walidacji fokus (i widok) trafia na pierwsze błędne pole bieżącego kroku.
+  useEffect(() => {
+    if (Object.keys(errors).length === 0) return;
+    formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"], [data-error-focus]')?.focus();
+  }, [errors]);
 
   const allServices = categories.flatMap((c) => c.services);
   const selected = allServices.filter((s) => serviceIds.includes(s.id));
@@ -92,14 +100,23 @@ export function BookingWizard({ categories, token, controller, autoConfirm, toda
   }
 
   function fetchAvailability(fromDate: string) {
+    setMessage(null);
     startTransition(async () => {
-      const result = await loadAvailability(serviceIds, fromDate);
-      if (!result.ok) {
-        setMessage(result.message);
-        return;
+      try {
+        const result = await loadAvailability(serviceIds, fromDate);
+        if (!result.ok) {
+          setMessage(result.message);
+          setRetryFrom(fromDate);
+          return;
+        }
+        setRetryFrom(null);
+        setAvailability(result);
+        setActiveDate(result.days.find((d) => d.times.length > 0)?.date ?? null);
+      } catch {
+        // Błąd sieci lub serwera (np. zimny start): pokazujemy komunikat i przycisk ponowienia.
+        setMessage("Nie udało się pobrać wolnych terminów. Sprawdź połączenie i spróbuj ponownie.");
+        setRetryFrom(fromDate);
       }
-      setAvailability(result);
-      setActiveDate(result.days.find((d) => d.times.length > 0)?.date ?? null);
     });
   }
 
@@ -215,7 +232,7 @@ export function BookingWizard({ categories, token, controller, autoConfirm, toda
         ))}
       </ol>
 
-      <form onSubmit={onStepSubmit} noValidate className="relative">
+      <form ref={formRef} onSubmit={onStepSubmit} noValidate className="relative">
         <h2 ref={headingRef} tabIndex={-1} className="text-2xl outline-none sm:text-3xl">
           Krok {step} z {STEPS.length}: {STEPS[step - 1]}
         </h2>
@@ -240,6 +257,7 @@ export function BookingWizard({ categories, token, controller, autoConfirm, toda
                             type="checkbox"
                             className="accent-accent mt-0.5 h-6 w-6 shrink-0"
                             checked={checked}
+                            aria-invalid={errors.serviceIds && s.id === allServices[0]?.id ? true : undefined}
                             onChange={() => toggleService(s.id)}
                           />
                           <span>
@@ -272,6 +290,7 @@ export function BookingWizard({ categories, token, controller, autoConfirm, toda
                         type="radio"
                         name="refrigerant"
                         className="accent-accent h-5 w-5"
+                        aria-invalid={errors.refrigerant && r === REFRIGERANTS[0] ? true : undefined}
                         checked={refrigerant === r}
                         onChange={() => setRefrigerant(r)}
                       />
@@ -327,6 +346,14 @@ export function BookingWizard({ categories, token, controller, autoConfirm, toda
               Pokazujemy wyłącznie realnie wolne terminy. Przewidywany czas wizyty: ok. {formatDuration(availability?.durationMin ?? totalMin)}.
             </p>
             {pending && !availability && <TurboLoader label="Sprawdzamy wolne terminy…" />}
+            {!pending && !availability && retryFrom && (
+              <div className="card flex flex-wrap items-center justify-between gap-3" role="alert">
+                <p>Nie udało się wczytać wolnych terminów.</p>
+                <button type="button" className="btn btn-secondary" onClick={() => fetchAvailability(retryFrom)}>
+                  Spróbuj ponownie
+                </button>
+              </div>
+            )}
             {availability && (
               <>
                 <div className="flex items-center justify-between gap-3">
@@ -408,7 +435,11 @@ export function BookingWizard({ categories, token, controller, autoConfirm, toda
                 )}
               </>
             )}
-            {errors.start && <p className="field-error">{errors.start}</p>}
+            {errors.start && (
+              <p className="field-error" tabIndex={-1} data-error-focus>
+                {errors.start}
+              </p>
+            )}
             {slot && (
               <p className="font-semibold" aria-live="polite">
                 Wybrany termin: {longFmt.format(asDate(slot.date))}, godz. {slot.time}
