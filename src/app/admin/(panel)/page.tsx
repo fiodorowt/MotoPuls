@@ -4,6 +4,7 @@ import { ActionButton, ActionForm } from "@/components/admin/ActionForm";
 import { Empty, PageHeader, Section, StatusBadge, TableWrap } from "@/components/admin/ui";
 import { requireUser } from "@/lib/auth/session";
 import { db } from "@/lib/db";
+import { mailStatus } from "@/lib/email/status";
 import { ACTIVE_BOOKING_STATUSES, formatPhone } from "@/lib/labels";
 import { addDays, formatDateShortPl, startOfWeek, warsawDate, warsawTime, warsawToUtc } from "@/lib/time";
 import { setBookingStatus } from "./rezerwacje/actions";
@@ -13,7 +14,7 @@ export const metadata: Metadata = { title: "Pulpit" };
 const bookingInclude = { customer: true, vehicle: true, services: true } as const;
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
-  await requireUser();
+  const user = await requireUser();
   const query = await searchParams;
   const today = warsawDate(new Date());
   const dayStart = warsawToUtc(today, "00:00");
@@ -58,6 +59,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       {query.haslo && <p className="border-ok text-ok mb-4 rounded-md border px-3 py-2 text-sm font-medium">Hasło zostało zmienione.</p>}
       {query["brak-uprawnien"] && (
         <p className="border-danger text-danger mb-4 rounded-md border px-3 py-2 text-sm font-medium">Ta część panelu jest dostępna tylko dla właściciela.</p>
+      )}
+
+      {user.role === "OWNER" && mailStatus() === "disabled" && (
+        <p role="alert" className="border-danger text-danger mb-4 rounded-md border px-3 py-2 text-sm font-medium">
+          Poczta nie jest skonfigurowana (brak SMTP_HOST): klienci nie dostają e-maili z potwierdzeniami i przypomnieniami. Ustaw zmienne SMTP w
+          konfiguracji hostingu (opis w README).
+        </p>
       )}
 
       <ul className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7">

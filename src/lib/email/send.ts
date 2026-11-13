@@ -2,6 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { createTransport, type Transporter } from "nodemailer";
 import { env } from "@/lib/env";
+import { mailStatus } from "./status";
 
 export interface Mail {
   to: string;
@@ -12,6 +13,7 @@ export interface Mail {
 }
 
 let transport: Transporter | undefined;
+let warnedNoSmtp = false;
 
 function getTransport(): Transporter | null {
   const e = env();
@@ -34,6 +36,11 @@ export async function sendMail(mail: Mail): Promise<boolean> {
   try {
     const smtp = getTransport();
     if (!smtp) {
+      if (mailStatus() === "disabled" && !warnedNoSmtp) {
+        warnedNoSmtp = true;
+        // Jednorazowo i bez danych osobowych: w produkcji wiadomości trafiają tylko do .mail-outbox.
+        console.warn("[mail] SMTP_HOST nie jest ustawiony: e-maile do klientów nie są wysyłane (zapis do .mail-outbox).");
+      }
       const dir = path.resolve(".mail-outbox");
       await mkdir(dir, { recursive: true });
       const name = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.json`;
