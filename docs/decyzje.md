@@ -84,3 +84,29 @@ Nadal otwarte (brak rekomendacji lub brak danych od właściciela): D-9 (Render:
 **D-9 (częściowo, 2026-11-13):** na razie baza i serwer Render darmowe, przejście na płatne przy starcie produkcyjnym. Do ustalenia: SMTP, cron, dysk na uploady, backup. Uwaga [ZAŁOŻENIE]: darmowa baza Render wygasa po ok. 30 dniach, więc dane testowe mogą zniknąć.
 
 **D-5 (uzupełnienie, 2026-11-13):** dodatkowa opcja do rozważenia z klientem: SMS z własnej karty SIM przez aplikację-bramkę na Androidzie. Opis i ryzyka w `docs/uslugi-zewnetrzne.md`, sekcja 4. MP-023 ma sprawdzić aplikacje i regulaminy operatorów.
+
+## D-9: stan Render i bazy, sprawdzony 2026-11-15 (tylko odczyt)
+
+**Fakty** (Render API i zapytanie SELECT do tabeli `_prisma_migrations`):
+- [FAKT] Usługa `motopuls` na Render: web service, Docker (`./Dockerfile`), region Frankfurt, plan `free`, gałąź `main`, **autoDeploy po commicie włączony** (`autoDeployTrigger: commit`). Jedyny dotychczasowy deploy: `cb5568d` z 2026-11-10, status live.
+- [FAKT] Na Render NIE ma instancji Postgres. Baza to projekt Supabase `motopuls` (region eu-central-1, Postgres 17, status ACTIVE_HEALTHY).
+- [FAKT] W tej bazie Prisma ma zastosowaną tylko migrację `20261110130016_init`. Sześć nowszych migracji z etapów 1, 3 i 4 NIE jest zastosowanych.
+- [FAKT] `Dockerfile` kończy się `CMD ["node", "server.js"]`: kontener NIE uruchamia migracji przy starcie (w compose robi to osobny serwis `migrate`).
+- [FAKT] Na koncie Render działa też darmowy web service `ideaflow-pilot-api` oraz dwie strony statyczne (inne projekty).
+
+**Ryzyko krytyczne:** `git push` do `main` uruchomi wdrożenie nowego kodu, który czyta kolumny i wartość enuma z niezastosowanych migracji. Aplikacja zacznie zwracać błędy Prisma (m.in. na każdej stronie czytającej `Settings`). Dlatego kolejność MUSI być: najpierw `db:deploy` na bazie produkcyjnej (robi właściciel), dopiero potem push.
+
+**Założenia do weryfikacji w cenniku/ustawieniach** [ZAŁOŻENIE]:
+- Darmowy web service Render usypia po ok. 15 min bezczynności (zimny start ok. 18 s, zmierzony).
+- Darmowe instancje w jednym koncie dzielą pulę ok. 750 godzin miesięcznie. Keep-alive utrzymujący `motopuls` 24/7 zużyje prawie całą pulę, więc druga darmowa usługa (`ideaflow-pilot-api`) może przestać działać.
+- Darmowy web service Render nie ma trwałego dysku: pliki w `/app/uploads` znikają przy każdym wdrożeniu i restarcie.
+- Supabase na planie darmowym pauzuje projekt po ok. 7 dniach bezczynności i nie ma kopii zapasowych punktowych (PITR).
+
+**Plan domknięcia (kolejność):**
+1. Kopia bazy przed migracją (właściciel: Supabase, Database, Backups lub `pg_dump`).
+2. `npm run db:deploy` z `DATABASE_URL` produkcyjnym, uruchomione przez właściciela lokalnie (sześć addytywnych migracji; wartości enuma nie da się cofnąć).
+3. Opcjonalnie wyłączenie autoDeploy na czas migracji, albo push dopiero po kroku 2.
+4. SMTP: konto Mailtrap (test) lub Brevo/Resend (produkcja), zmienne `SMTP_*` i `MAIL_FROM` w panelu Render (właściciel; sekrety nie trafiają do repo ani rozmowy).
+5. Cron: workflow GitHub Actions wywołujący `/api/cron/*` co godzinę z `CRON_SECRET` w GitHub Secrets (MP-003, kod przygotuje agent, sekret ustawia właściciel).
+6. Uploady: do czasu płatnego planu z dyskiem lub zewnętrznego magazynu zdjęcia z panelu giną przy deployu.
+7. Przejście na płatny plan Render (bez usypiania, z dyskiem) przed startem produkcyjnym; Supabase Pro dla kopii.
