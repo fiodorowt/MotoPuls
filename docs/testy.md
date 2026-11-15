@@ -200,3 +200,15 @@ Zmiany testów wykonane przez testera: dodano `tests/e2e/02a-mail-warning.spec.t
 | UWAGA-3 | Informacja | `[mail] SMTP_HOST nie jest ustawiony` pojawia się w logu E2E, bo serwer E2E to build produkcyjny. Zgodne z kryterium MP-002 | log `npm run test:e2e` | OK |
 
 Werdykt etapu 1 (tester): PRZEPUSZCZAM, z warunkiem odnotowania BŁĘDU-1 (istnieje w main, nie jest regresją).
+
+### Etap 3 (`mp/etap-3-premium`) - implementacja `mp-premium`, 2026-11-15
+
+| Zadanie | Testy | Gdzie |
+|---|---|---|
+| MP-031, MP-032 | T5.4, domyślne wartości kolumn, wpis `settings.premium` | `tests/integration/premium.test.ts`, `tests/e2e/02b-premium.spec.ts` |
+| MP-033 | T5.2, T5.3, schemat Zod | `tests/unit/premium-schema.test.ts`, integracyjny + E2E |
+| MP-035 | T5.1 (także z terminem kolidującym) | `tests/integration/premium.test.ts` (równość pełnych wierszy Booking/BookingSlot/Block przed i po), E2E (liczności) |
+| MP-034 | T5.6 (390/768/1280, strona i sekcja na głównej), sitemap | `tests/e2e/02b-premium.spec.ts` (`/premium` ma 404 przy wyłączonej fladze, więc nie wchodzi do pętli T8.1) |
+| (T5.5) | honeypot, limit IP | `tests/integration/premium.test.ts` |
+
+Trasa `/premium` leży w `(public-detail)` (notFound). Spec nazwany `02b`, bo `03` zamyka wspólną pulę `db.ts`.

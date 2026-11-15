@@ -100,6 +100,13 @@ export function Footer({ settings }: { settings: Settings }) {
                 Rezerwacja online
               </Link>
             </li>
+            {settings.premiumEnabled && (
+              <li>
+                <Link href="/premium" className="link">
+                  Moto Puls Premium
+                </Link>
+              </li>
+            )}
             <li>
               <Link href="/regulamin-rezerwacji" className="link">
                 Regulamin rezerwacji

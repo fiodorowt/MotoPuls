@@ -164,7 +164,15 @@ export function Directions({ settings }: { settings: Settings }) {
   );
 }
 
-export function CtaBand({ settings, title = "Umów wizytę w dogodnym terminie" }: { settings: Settings; title?: string }) {
+export function CtaBand({
+  settings,
+  title = "Umów wizytę w dogodnym terminie",
+  showPremium = true,
+}: {
+  settings: Settings;
+  title?: string;
+  showPremium?: boolean;
+}) {
   const phone = settings.phones[0];
   return (
     <section className="container-page py-10">
@@ -172,6 +180,13 @@ export function CtaBand({ settings, title = "Umów wizytę w dogodnym terminie" 
         <div>
           <h2 className="text-2xl sm:text-3xl">{title}</h2>
           <p className="text-muted mt-2">Wybierz usługę i wolny termin online albo po prostu zadzwoń.</p>
+          {showPremium && settings.premiumEnabled && (
+            <p className="mt-2 text-sm">
+              <Link href="/premium" className="link">
+                Moto Puls Premium: obsługa organizowana indywidualnie
+              </Link>
+            </p>
+          )}
         </div>
         <div className="flex flex-wrap gap-3">
           <Link href="/rezerwacja" className="btn btn-primary">

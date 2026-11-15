@@ -45,3 +45,18 @@ export async function auditCount(action: string): Promise<number> {
 export async function closePool(): Promise<void> {
   await pool.end();
 }
+
+/** Ustawia flagi Premium bezpośrednio w bazie testowej (stan początkowy scenariuszy MP-032..MP-034). */
+export async function setPremiumFlags(enabled: boolean, pickup: boolean): Promise<void> {
+  await pool.query(`UPDATE "Settings" SET "premiumEnabled" = $1, "premiumPickupEnabled" = $2 WHERE id = 1`, [enabled, pickup]);
+}
+
+export async function rowCount(table: "Booking" | "BookingSlot" | "Block" | "Inquiry"): Promise<number> {
+  const { rows } = await pool.query(`SELECT count(*)::int AS n FROM "${table}"`);
+  return rows[0].n;
+}
+
+export async function premiumInquiries(): Promise<{ type: string; data: Record<string, string> | null }[]> {
+  const { rows } = await pool.query(`SELECT type::text AS type, data FROM "Inquiry" WHERE type = 'PREMIUM'`);
+  return rows;
+}

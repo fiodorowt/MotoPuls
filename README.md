@@ -227,6 +227,16 @@ Codziennie o 2:30 (`crontab -e` na serwerze):
 - Raz na kwartał wykonaj próbne odtworzenie na osobnej bazie.
 - Przy zarządzanej bazie (Neon/Supabase) włącz kopie automatyczne / PITR u dostawcy.
 
+
+## Moto Puls Premium
+
+Oferta Premium (obsługa organizowana indywidualnie, poza kalendarzem rezerwacji) jest **domyślnie wyłączona**.
+Włącza ją właściciel w *Ustawienia → Moto Puls Premium* (po zatwierdzeniu treści strony `/premium` i decyzji D-3/D-4):
+flaga `premiumEnabled`, tekst o cenie (`premiumPriceNote`, domyślnie „Cena ustalana indywidualnie"), opcjonalny odbiór auta
+(`premiumPickupEnabled`, `premiumPickupNote`). Zgłoszenia trafiają do *Zapytań* (filtr „Premium") i do e‑maila warsztatu;
+nie tworzą rezerwacji ani blokad. Przy wyłączonej fladze `/premium` zwraca 404, a strona znika z `sitemap.xml`.
+Migracje: `20261115100000_inquiry_type_premium` (osobna, `ALTER TYPE ... ADD VALUE`) i `20261115100100_premium_settings`.
+
 ## Konta, hasła i 2FA
 
 - Role: **Właściciel** (wszystko) i **Pracownik** (pulpit, kalendarz, rezerwacje, klienci, floty, zapytania).

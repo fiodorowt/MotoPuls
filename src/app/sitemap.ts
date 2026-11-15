@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { db } from "@/lib/db";
 import { env } from "@/lib/env";
 
 export const dynamic = "force-dynamic";
@@ -16,7 +17,10 @@ const PAGES = [
   { path: "/regulamin-rezerwacji", priority: 0.2 },
 ];
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = env().APP_URL;
-  return PAGES.map((p) => ({ url: `${base}${p.path}`, changeFrequency: "monthly", priority: p.priority }));
+  // /premium trafia do mapy tylko po włączeniu w ustawieniach (przy wyłączonym zwraca 404).
+  const settings = await db.settings.findUnique({ where: { id: 1 }, select: { premiumEnabled: true } });
+  const pages = settings?.premiumEnabled ? [...PAGES, { path: "/premium", priority: 0.6 }] : PAGES;
+  return pages.map((p) => ({ url: `${base}${p.path}`, changeFrequency: "monthly", priority: p.priority }));
 }

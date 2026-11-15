@@ -63,6 +63,7 @@ export default async function BookingPage({ searchParams }: { searchParams: Prom
           controller={settings.legalName}
           autoConfirm={settings.autoConfirm}
           today={warsawDate(new Date())}
+          premiumEnabled={settings.premiumEnabled}
         />
       </div>
     </>

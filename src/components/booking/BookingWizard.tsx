@@ -34,6 +34,8 @@ interface Props {
   controller: string;
   autoConfirm: boolean;
   today: string;
+  /** Link do oferty Premium (tylko gdy włączona w ustawieniach); bez wpływu na logikę terminów */
+  premiumEnabled?: boolean;
 }
 
 const STEPS = ["Usługi", "Pojazd", "Termin", "Twoje dane", "Podsumowanie"] as const;
@@ -51,7 +53,7 @@ function shiftDate(date: string, days: number): string {
 
 type Availability = Extract<AvailabilityResult, { ok: true }>;
 
-export function BookingWizard({ categories, token, controller, autoConfirm, today }: Props) {
+export function BookingWizard({ categories, token, controller, autoConfirm, today, premiumEnabled = false }: Props) {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [serviceIds, setServiceIds] = useState<string[]>([]);
@@ -345,6 +347,15 @@ export function BookingWizard({ categories, token, controller, autoConfirm, toda
             <p className="text-muted">
               Pokazujemy wyłącznie realnie wolne terminy. Przewidywany czas wizyty: ok. {formatDuration(availability?.durationMin ?? totalMin)}.
             </p>
+            {premiumEnabled && (
+              <p className="text-muted text-sm">
+                Potrzebujesz pilnej obsługi?{" "}
+                <Link href="/premium" className="link">
+                  Sprawdź Moto Puls Premium
+                </Link>
+                .
+              </p>
+            )}
             {pending && !availability && <TurboLoader label="Sprawdzamy wolne terminy…" />}
             {!pending && !availability && retryFrom && (
               <div className="card flex flex-wrap items-center justify-between gap-3" role="alert">
