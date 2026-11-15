@@ -86,6 +86,15 @@ export async function anonymizeInactiveCustomers(now: Date = new Date()): Promis
   return candidates.length;
 }
 
+/** Klucz w `Inquiry.data` (typ PREMIUM) z adresem odbioru auta; ustawiany w `(public)/actions.ts`. */
+export const PICKUP_ADDRESS_KEY = "Adres odbioru";
+
+/**
+ * Po ilu dniach od zamknięcia zapytania PREMIUM usuwamy z niego sam adres odbioru (reszta zapytania żyje do `retentionMonths`).
+ * DO UZUPEŁNIENIA przez właściciela, domyślnie 30. Liczone od `updatedAt` zamkniętego zapytania.
+ */
+export const PICKUP_ADDRESS_RETENTION_DAYS = 30;
+
 /** Sprzątanie danych technicznych: wygasłe sesje, tokeny, liczniki limitów, stare zamknięte zapytania. */
 export async function cleanup(now: Date = new Date()): Promise<void> {
   const settings = await db.settings.findUniqueOrThrow({ where: { id: 1 } });
@@ -95,8 +104,27 @@ export async function cleanup(now: Date = new Date()): Promise<void> {
     db.session.deleteMany({ where: { expiresAt: { lt: now } } }),
     db.passwordResetToken.deleteMany({ where: { expiresAt: { lt: now } } }),
     db.rateLimit.deleteMany({ where: { windowStart: { lt: new Date(now.getTime() - 86_400_000) } } }),
-    db.inquiry.deleteMany({ where: { status: "CLOSED", updatedAt: { lt: inquiryCutoff } } }),
+    // Polityka prywatności: zapytania każdego statusu nie dłużej niż retentionMonths od złożenia.
+    db.inquiry.deleteMany({
+      where: { OR: [{ status: "CLOSED", updatedAt: { lt: inquiryCutoff } }, { createdAt: { lt: inquiryCutoff } }] },
+    }),
   ]);
+  await stripPickupAddresses(new Date(now.getTime() - PICKUP_ADDRESS_RETENTION_DAYS * 86_400_000));
+}
+
+/** Usuwa z zamkniętych zapytań PREMIUM sam adres odbioru (pozostałe pola `data` zostają). */
+async function stripPickupAddresses(cutoff: Date): Promise<void> {
+  const rows = await db.inquiry.findMany({
+    where: { type: "PREMIUM", status: "CLOSED", updatedAt: { lt: cutoff } },
+    select: { id: true, data: true },
+  });
+  for (const { id, data } of rows) {
+    if (!data || typeof data !== "object" || Array.isArray(data) || !(PICKUP_ADDRESS_KEY in data)) continue;
+    const rest = { ...(data as Record<string, unknown>) };
+    delete rest[PICKUP_ADDRESS_KEY];
+    // Surowy UPDATE nie przesuwa updatedAt (Prisma ustawiłaby je na "teraz").
+    await db.$executeRaw`UPDATE "Inquiry" SET "data" = ${JSON.stringify(rest)}::jsonb WHERE id = ${id}`;
+  }
 }
 
 /**

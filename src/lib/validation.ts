@@ -2,20 +2,26 @@ import { z } from "zod";
 
 /** Wspólne schematy Zod – te same reguły w przeglądarce i na serwerze. */
 
-const text = (min: number, max: number, label: string) =>
-  z
+/** Znaki sterujące (w tym nowe linie) są zabronione w polach jednoliniowych (wstrzyknięcie do maili). */
+const SINGLE_LINE = /^[^\u0000-\u001f\u007f]*$/;
+const SINGLE_LINE_MSG = "pole nie może zawierać nowych linii ani znaków sterujących";
+
+/** `multiline: true` tylko dla pól opisowych (wiadomość, opis); pozostałe są jednoliniowe. */
+const text = (min: number, max: number, label: string, multiline = false) => {
+  const base = z
     .string({ error: `${label}: pole wymagane` })
     .trim()
     .min(min, `${label}: pole wymagane`)
     .max(max, `${label}: najwyżej ${max} znaków`);
+  return multiline ? base : base.regex(SINGLE_LINE, `${label}: ${SINGLE_LINE_MSG}`);
+};
 
-const optionalText = (max: number) =>
-  z
-    .string()
-    .trim()
-    .max(max, `Najwyżej ${max} znaków`)
+const optionalText = (max: number, multiline = false) => {
+  const base = z.string().trim().max(max, `Najwyżej ${max} znaków`);
+  return (multiline ? base : base.regex(SINGLE_LINE, `Pole: ${SINGLE_LINE_MSG}`))
     .optional()
     .transform((v) => (v ? v : undefined));
+};
 
 export const phoneSchema = z
   .string({ error: "Podaj numer telefonu" })
@@ -62,7 +68,7 @@ export const vehicleSchema = z.object({
   vin: vinSchema,
   mileage: optionalInt(2_000_000, "Podaj przebieg w km"),
   type: z.enum(["CAR", "VAN"], { error: "Wybierz typ pojazdu" }),
-  description: optionalText(1000),
+  description: optionalText(1000, true),
 });
 
 export const customerSchema = z.object({
@@ -107,7 +113,7 @@ const inquiryBase = {
 
 export const contactSchema = z.object({
   ...inquiryBase,
-  message: text(10, 2000, "Wiadomość"),
+  message: text(10, 2000, "Wiadomość", true),
 });
 
 export const partsSchema = z.object({
@@ -117,7 +123,7 @@ export const partsSchema = z.object({
   year: yearSchema,
   vin: vinSchema,
   part: text(2, 200, "Nazwa części"),
-  message: optionalText(2000),
+  message: optionalText(2000, true),
 });
 
 export const fleetSchema = z.object({
@@ -130,7 +136,7 @@ export const fleetSchema = z.object({
     .optional()
     .transform((v) => (v ? v : undefined)),
   fleetSize: z.coerce.number({ error: "Podaj liczbę pojazdów" }).int().min(1, "Podaj liczbę pojazdów").max(10_000),
-  message: optionalText(2000),
+  message: optionalText(2000, true),
 });
 
 export type FieldErrors = Record<string, string>;
@@ -155,7 +161,7 @@ export const premiumSchema = (pickupEnabled: boolean) =>
     .object({
       ...inquiryBase,
       vehicle: text(2, 100, "Pojazd"),
-      message: text(10, 2000, "Opis"),
+      message: text(10, 2000, "Opis", true),
       preferredDate: optionalText(100),
       pickup: optionalText(10),
       pickupAddress: optionalText(200),

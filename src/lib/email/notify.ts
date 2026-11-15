@@ -4,7 +4,7 @@ import { BOOKING_STATUS_LABEL, INQUIRY_TYPE_LABEL, formatPhone, type InquiryType
 import { formatDateTimePl } from "@/lib/time";
 import { buildIcs } from "./ics";
 import { sendMail, type Mail } from "./send";
-import { DEFAULT_TEMPLATES, fillTemplate, renderHtml, type TemplateVars } from "./templates";
+import { DEFAULT_TEMPLATES, fillTemplate, renderHtml, sanitizeVars, type TemplateVars } from "./templates";
 
 export type BookingMailKind =
   | "booking_received"
@@ -25,7 +25,8 @@ async function companyVars(): Promise<{ vars: TemplateVars; footer: string; noti
   };
 }
 
-async function sendTemplate(key: string, to: string, vars: TemplateVars, footer: string, ics?: Mail["ics"]) {
+async function sendTemplate(key: string, to: string, rawVars: TemplateVars, footer: string, ics?: Mail["ics"]) {
+  const vars = sanitizeVars(rawVars);
   const stored = await db.emailTemplate.findUnique({ where: { key } });
   const template = stored ?? DEFAULT_TEMPLATES[key];
   if (!template) throw new Error(`Brak szablonu e-mail: ${key}`);
