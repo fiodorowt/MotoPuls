@@ -64,3 +64,11 @@ export function buildAutoRepairJsonLd(input: {
     potentialAction: { "@type": "ReserveAction", target: `${url}/rezerwacja` },
   };
 }
+
+/**
+ * Serializes JSON-LD for an inline <script>. "<" and the JS line separators are escaped so panel-edited
+ * values cannot close the script tag or break the script parsing.
+ */
+export function serializeJsonLd(value: unknown): string {
+  return JSON.stringify(value).replace(/</g, "\\u003c").replace(/\u2028/g, "\\u2028").replace(/\u2029/g, "\\u2029");
+}

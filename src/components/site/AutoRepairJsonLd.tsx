@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
 import { getCategories } from "@/lib/catalog";
 import { env } from "@/lib/env";
-import { buildAutoRepairJsonLd } from "@/lib/seo";
+import { buildAutoRepairJsonLd, serializeJsonLd } from "@/lib/seo";
 import { getOpeningHours, getSettings } from "@/lib/settings";
 
 /** Pełny AutoRepair tylko na `/` i `/kontakt` (MP-040); dane z Settings, OpeningHours i Service. */
@@ -17,8 +17,8 @@ export async function AutoRepairJsonLd() {
     <script
       type="application/ld+json"
       nonce={nonce}
-      // „<” jest kodowany, żeby treść z panelu nie mogła zamknąć znacznika script
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\u003c") }}
+      // serializeJsonLd koduje „<” i separatory linii, żeby treść z panelu nie mogła zamknąć znacznika script
+      dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
     />
   );
 }

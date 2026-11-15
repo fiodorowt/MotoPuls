@@ -79,3 +79,13 @@ export async function insertAudit(action: string, createdAt: string): Promise<vo
 export async function setAreaServed(areas: string[]): Promise<void> {
   await pool.query(`UPDATE "Settings" SET "areaServed" = $1 WHERE id = 1`, [areas]);
 }
+
+/** Adres firmy w Settings (metadane /kontakt mają pochodzić z bazy, nie z kodu). */
+export async function setCompanyAddress(street: string, city: string): Promise<void> {
+  await pool.query(`UPDATE "Settings" SET street = $1, city = $2 WHERE id = 1`, [street, city]);
+}
+
+export async function coordinates(): Promise<{ latitude: number; longitude: number }> {
+  const { rows } = await pool.query(`SELECT latitude, longitude FROM "Settings" WHERE id = 1`);
+  return rows[0];
+}
