@@ -8,9 +8,9 @@ import { getSettings } from "@/lib/settings";
 import { formatDuration } from "@/lib/time";
 
 export const metadata: Metadata = {
-  title: "Usługi – mechanik Białe Błota, serwis aut osobowych i dostawczych",
+  title: "Usługi warsztatu – Białe Błota, Bydgoszcz",
   description:
-    "Zakres usług warsztatu Moto Puls w Białych Błotach k. Bydgoszczy: naprawy aut osobowych i dostawczych do 3,5 t, mechanika, elektromechanika, klimatyzacja, diagnostyka komputerowa.",
+    "Zakres usług warsztatu Moto Puls w Białych Błotach k. Bydgoszczy: naprawy aut osobowych i dostawczych do 3,5 t, mechanika, klimatyzacja, diagnostyka.",
   alternates: { canonical: "/uslugi" },
 };
 

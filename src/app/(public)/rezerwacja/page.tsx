@@ -8,9 +8,9 @@ import { getSettings } from "@/lib/settings";
 import { warsawDate } from "@/lib/time";
 
 export const metadata: Metadata = {
-  title: "Rezerwacja wizyty online – warsztat Moto Puls, Białe Błota",
+  title: "Rezerwacja wizyty online – Białe Błota",
   description:
-    "Umów wizytę w warsztacie Moto Puls online: wybierz usługę, podaj dane auta i zarezerwuj wolny termin. Białe Błota k. Bydgoszczy.",
+    "Umów wizytę w warsztacie Moto Puls online: wybierz usługę, podaj dane auta i zarezerwuj wolny termin. Białe Błota k. Bydgoszczy. Pięć krótkich kroków.",
   alternates: { canonical: "/rezerwacja" },
 };
 
@@ -38,6 +38,7 @@ export default async function BookingPage({ searchParams }: { searchParams: Prom
   return (
     <>
       <PageHeader
+        divider={false}
         eyebrow="Rezerwacja"
         title="Umów wizytę online"
         lead={

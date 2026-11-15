@@ -4,9 +4,9 @@ import { getGallery } from "@/lib/catalog";
 import { fullAddress, getContent, getSettings } from "@/lib/settings";
 
 export const metadata: Metadata = {
-  title: "O nas – warsztat samochodowy Moto Puls, Białe Błota",
+  title: "O nas – warsztat w Białych Błotach",
   description:
-    "Poznaj warsztat Moto Puls z Białych Błot pod Bydgoszczą. Indywidualne podejście, staranność i uczciwa wycena przed naprawą.",
+    "Poznaj warsztat Moto Puls z Białych Błot pod Bydgoszczą: indywidualne podejście do każdego pojazdu, staranność napraw i uczciwa wycena przed rozpoczęciem prac.",
   alternates: { canonical: "/o-nas" },
 };
 

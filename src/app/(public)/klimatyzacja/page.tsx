@@ -8,9 +8,9 @@ import { getSettings } from "@/lib/settings";
 import { formatDuration } from "@/lib/time";
 
 export const metadata: Metadata = {
-  title: "Serwis klimatyzacji Białe Błota i Bydgoszcz – R134a i R1234yf",
+  title: "Serwis klimatyzacji – Białe Błota, Bydgoszcz",
   description:
-    "Serwis klimatyzacji samochodowej w Białych Błotach k. Bydgoszczy. Stacja TEXA Konfort 715R – obsługujemy czynnik R134a i R1234yf. Napełnianie, wykrywanie nieszczelności, ozonowanie, filtry kabinowe.",
+    "Serwis klimatyzacji samochodowej w Białych Błotach k. Bydgoszczy. Stacja TEXA Konfort 715R, czynnik R134a i R1234yf, wykrywanie nieszczelności, filtry kabinowe.",
   alternates: { canonical: "/klimatyzacja" },
 };
 

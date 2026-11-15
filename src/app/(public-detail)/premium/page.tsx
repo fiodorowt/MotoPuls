@@ -11,8 +11,9 @@ import { getSettings } from "@/lib/settings";
 // Treści marketingowe poniżej: DO ZATWIERDZENIA przez właściciela (bez obietnic czasu, ceny i gwarancji).
 // Właściciel włącza stronę w panelu (Ustawienia > Moto Puls Premium) dopiero po zatwierdzeniu.
 export const metadata: Metadata = {
-  title: "Moto Puls Premium – obsługa organizowana indywidualnie",
-  description: "Moto Puls Premium: zgłoszenia z indywidualnym potwierdzeniem właściciela, poza standardowym harmonogramem. Białe Błota k. Bydgoszczy.",
+  title: "Premium – obsługa organizowana indywidualnie",
+  description:
+    "Moto Puls Premium: zgłoszenia z indywidualnym potwierdzeniem właściciela, poza standardowym harmonogramem rezerwacji. Białe Błota k. Bydgoszczy.",
   alternates: { canonical: "/premium" },
 };
 

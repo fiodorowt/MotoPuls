@@ -8,16 +8,18 @@ import { formatPhone, telHref } from "@/lib/labels";
 import { getContent, getSettings } from "@/lib/settings";
 
 export const metadata: Metadata = {
-  title: "Obsługa flot samochodowych – serwis aut firmowych Bydgoszcz i okolice",
+  title: "Serwis flot firmowych – Białe Błota",
   description:
-    "Serwis flotowy Moto Puls w Białych Błotach k. Bydgoszczy: stałe warunki współpracy, priorytetowe terminy, historia każdego pojazdu. Auta osobowe i dostawcze do 3,5 t. Wyślij zapytanie.",
+    "Serwis flot samochodowych Moto Puls w Białych Błotach k. Bydgoszczy: stałe warunki współpracy dla firm, auta osobowe i dostawcze do 3,5 t. Wyślij zapytanie.",
   alternates: { canonical: "/dla-firm" },
 };
 
+// MP-038 / D-11 (a): treść złagodzona do funkcji, które system dziś realizuje (brak historii napraw dla klienta
+// i priorytetu terminów). Przywrócenie obietnic po etapie 5 (MP-055) to MP-058; tekst do zatwierdzenia przez właściciela.
 const BENEFITS = [
   { title: "Stałe warunki", body: "Ustalamy zasady rozliczeń i zakres obsługi raz – bez negocjowania każdej wizyty." },
-  { title: "Priorytetowe terminy", body: "Auto firmowe ma zarabiać. Staramy się skrócić przestój do minimum." },
-  { title: "Historia pojazdów", body: "Prowadzimy historię napraw każdego auta z floty i przypominamy o przeglądach." },
+  { title: "Terminy do uzgodnienia", body: "Terminy wizyt ustalamy indywidualnie. Auto firmowe ma zarabiać, więc staramy się skrócić przestój do minimum." },
+  { title: "Ewidencja wizyt", body: "Wizyty pojazdów z Twojej floty zapisujemy w warsztacie, dzięki czemu wiemy, co i kiedy było robione." },
   { title: "Jeden warsztat", body: "Mechanika, elektryka, klimatyzacja, diagnostyka i części w jednym miejscu." },
 ];
 
@@ -28,7 +30,7 @@ export default async function FleetPage() {
   const phone = settings.phones[0];
   return (
     <>
-      <PageHeader eyebrow="Dla firm" title="Obsługa flot samochodowych" lead={category?.description ?? intro?.body} />
+      <PageHeader eyebrow="Dla firm" title={`Obsługa flot samochodowych – ${settings.city}`} lead={category?.description ?? intro?.body} />
 
       <Section id="korzysci" title={intro?.title ?? "Serwis aut firmowych"}>
         {intro && <p className="text-muted -mt-4 mb-8 max-w-3xl text-lg">{intro.body}</p>}

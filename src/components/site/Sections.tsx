@@ -9,13 +9,13 @@ import type { DayHours } from "@/lib/slots";
 import { WEEKDAYS_PL } from "@/lib/time";
 import { ConsentMap } from "./ConsentMap";
 
-export function PageHeader({ eyebrow, title, lead }: { eyebrow: string; title: string; lead?: ReactNode }) {
+export function PageHeader({ eyebrow, title, lead, divider = true }: { eyebrow: string; title: string; lead?: ReactNode; divider?: boolean }) {
   return (
     <div className="container-page pt-10 pb-8 sm:pt-16">
       <p className="eyebrow">{eyebrow}</p>
       <h1 className="mt-3 max-w-4xl text-3xl sm:text-5xl">{title}</h1>
       {lead && <p className="text-muted mt-5 max-w-3xl text-lg">{lead}</p>}
-      <PulseDivider className="mt-10" />
+      {divider && <PulseDivider className="mt-10" />}
     </div>
   );
 }

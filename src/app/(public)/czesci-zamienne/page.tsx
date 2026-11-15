@@ -6,9 +6,9 @@ import { getCategories } from "@/lib/catalog";
 import { getContent, getSettings } from "@/lib/settings";
 
 export const metadata: Metadata = {
-  title: "Części zamienne – dobór po numerze VIN, Białe Błota k. Bydgoszczy",
+  title: "Części zamienne – Białe Błota k. Bydgoszczy",
   description:
-    "Sprzedaż części zamiennych do aut osobowych i dostawczych w Białych Błotach. Dobór po numerze VIN, części z montażem lub bez. Wyślij zapytanie o część.",
+    "Sprzedaż części zamiennych do aut osobowych i dostawczych w Białych Błotach k. Bydgoszczy. Dobór po numerze VIN, odbiór lub montaż. Wyślij zapytanie o część.",
   alternates: { canonical: "/czesci-zamienne" },
 };
 
@@ -18,7 +18,7 @@ export default async function PartsPage() {
   const intro = content.parts_intro;
   return (
     <>
-      <PageHeader eyebrow="Części" title="Sprzedaż części zamiennych" lead={category?.description} />
+      <PageHeader eyebrow="Części" title={`Sprzedaż części zamiennych – ${settings.city}`} lead={category?.description} />
       <Section id="zapytanie" title="Zapytaj o część">
         <div className="grid gap-8 lg:grid-cols-[2fr_1fr]">
           <div className="card">

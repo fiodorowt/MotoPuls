@@ -6,7 +6,8 @@ import { fullAddress, getSettings } from "@/lib/settings";
 
 export const metadata: Metadata = {
   title: "Polityka prywatności",
-  description: "Zasady przetwarzania danych osobowych i wykorzystania plików cookies w serwisie Moto Puls.",
+  description:
+    "Polityka prywatności serwisu Moto Puls: zasady przetwarzania danych osobowych przy rezerwacjach i zapytaniach oraz wykorzystania plików cookies i mapy dojazdu.",
   alternates: { canonical: "/polityka-prywatnosci" },
 };
 
