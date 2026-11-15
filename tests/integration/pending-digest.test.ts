@@ -43,6 +43,15 @@ describe("MP-012 przypomnienie o nieobsłużonych PENDING", () => {
     expect(mails[0]?.text).not.toContain(`/admin/rezerwacje/${fresh.id}`);
   });
 
+  it("marka i model z nową linią i URL nie tworzą w mailu osobnej linii (przycisk phishingowy)", async () => {
+    const booking = await pendingCreatedHoursAgo(13, "10:00", now());
+    await db.vehicle.update({ where: { id: booking.vehicleId }, data: { make: "Audi\n\nhttps://zly.example/x", model: "A4" } });
+    expect(await sendPendingDigest(now())).toBe(1);
+    const text = mailsTo(WORKSHOP)[0]?.text ?? "";
+    expect(text).toContain("zly.example");
+    expect(text.split("\n").some((line) => line.trim().startsWith("https://zly.example"))).toBe(false);
+  });
+
   it("maksymalnie raz na dobę; kolejnego dnia znowu", async () => {
     await pendingCreatedHoursAgo(20, "10:00", now());
     expect(await sendPendingDigest(now())).toBe(1);

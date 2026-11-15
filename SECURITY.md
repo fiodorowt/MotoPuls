@@ -73,7 +73,11 @@ niezależną weryfikację.
 17. **Moto Puls Premium (MP-031..MP-035).** Zgłoszenie Premium to zwykłe `Inquiry(type=PREMIUM)`: nie tworzy ani nie zmienia
     `Booking`, `BookingSlot` ani `Block` (pilnują tego testy `tests/integration/premium.test.ts` i `02b-premium.spec.ts`).
     Adres odbioru auta to dane osobowe zapisane w `Inquiry.data`; nie trafia do e‑maila ani do `AuditLog` (mail zawiera
-    tylko imię). Dane podlegają ręcznemu usuwaniu zapytań w panelu; automatycznej retencji zapytań nadal brak.
+    tylko imię). Zapytania każdego statusu są usuwane automatycznie po `retentionMonths` od złożenia (zamknięte także po
+    `retentionMonths` od ostatniej zmiany); sam adres odbioru jest kasowany z zamkniętych zapytań PREMIUM po
+    `PICKUP_ADDRESS_RETENTION_DAYS` dniach (`maintenance.ts`, domyślnie 30, DO UZUPEŁNIENIA przez właściciela).
+    Wartości zmiennych szablonów maili są oczyszczane z nowych linii i znaków sterujących, a pola jednoliniowe
+    formularzy odrzucają je w walidacji (wstrzyknięcie przycisku przez imię).
     Flagi `premiumEnabled` i `premiumPickupEnabled` są domyślnie wyłączone (decyzje D-3/D-4); serwer odrzuca zgłoszenia
     przy wyłączonej fladze oraz payload z adresem odbioru przy wyłączonym odbiorze. Zmiany ustawień: tylko właściciel,
     wpis `settings.premium` w dzienniku.

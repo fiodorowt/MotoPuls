@@ -122,6 +122,25 @@ Jeśli to nie Ty, zignoruj tę wiadomość – hasło pozostanie bez zmian.`,
 
 export type TemplateVars = Record<string, string>;
 
+/** Zmienne, które świadomie mogą zawierać wiele linii (powód odrzucenia, lista w zbiorczym mailu). */
+const MULTILINE_VARS = ["powod", "lista"];
+
+/**
+ * Zamienia CR/LF i znaki sterujące na spacje w wartościach zmiennych, żeby dane od klienta (imię, pojazd)
+ * nie tworzyły własnych linii w treści maila (np. linii z samym URL, którą renderHtml zamienia w przycisk).
+ */
+export function oneLine(value: string): string {
+  return value.replace(/[\u0000-\u001f\u007f]/g, " ");
+}
+
+export function sanitizeVars(vars: TemplateVars, multiline: string[] = MULTILINE_VARS): TemplateVars {
+  const out: TemplateVars = {};
+  for (const [key, value] of Object.entries(vars)) {
+    out[key] = multiline.includes(key) ? value : oneLine(value);
+  }
+  return out;
+}
+
 export function fillTemplate(template: string, vars: TemplateVars): string {
   return template.replace(/\{\{\s*([a-z_]+)\s*\}\}/g, (_, key: string) => vars[key] ?? "");
 }

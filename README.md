@@ -192,7 +192,7 @@ Dlatego zalecany jest wariant VPS.
 | Endpoint | Co robi | Jak często |
 | --- | --- | --- |
 | `POST /api/cron/reminders` | przypomnienia e‑mail dzień przed wizytą (wysyła dopiero po 9:00, każde tylko raz) oraz zbiorczy mail do warsztatu o rezerwacjach `PENDING` czekających dłużej niż próg z ustawień (domyślnie 12 h, `0` = wyłączone; maks. raz na dobę, nic nie jest anulowane automatycznie) | co godzinę |
-| `POST /api/cron/maintenance` | anonimizacja nieaktywnych klientów po okresie retencji (ustawienia panelu), czyszczenie wygasłych sesji, tokenów i liczników | co godzinę lub raz dziennie |
+| `POST /api/cron/maintenance` | anonimizacja nieaktywnych klientów po okresie retencji (ustawienia panelu), czyszczenie wygasłych sesji, tokenów i liczników, usuwanie zapytań starszych niż okres retencji, kasowanie adresu odbioru Premium z zamkniętych zapytań po 30 dniach (stała w `maintenance.ts`) | co godzinę lub raz dziennie |
 
 W Docker Compose robi to usługa `cron`. Ręcznie / z zewnętrznego harmonogramu:
 
