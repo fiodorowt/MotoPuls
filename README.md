@@ -249,6 +249,10 @@ Migracje: `20261115100000_inquiry_type_premium` (osobna, `ALTER TYPE ... ADD VAL
   ```
   (lokalnie: `npm run admin:reset -- adres@email.pl`). Ustawia nowe hasło jednorazowe, usuwa 2FA i wylogowuje wszystkie sesje.
 
+## SEO i favicon
+
+Metadane stron (title <= 60, description 140-160 znaków) są w `page.tsx` każdej trasy; `/kontakt` pobiera je z Ustawień. Dane strukturalne AutoRepair (`src/lib/seo.ts`) są dodawane tylko na `/` i `/kontakt` z danych w bazie (ustawienia, godziny, aktywne usługi bez cen). `sitemap.xml` podaje `lastmod` z dziennika zmian w panelu. `src/app/favicon.ico` generuje `npx tsx scripts/build-favicon.ts` z `src/app/icon.svg`.
+
 ## Co uzupełnić przed startem
 
 W panelu (*Ustawienia*, *Usługi*, *Treści*):
@@ -257,6 +261,7 @@ W panelu (*Ustawienia*, *Usługi*, *Treści*):
 - ceny usług („od … zł”) i czasy trwania – wartości startowe są szacunkowe,
 - współrzędne / link mapy i opis dojazdu (zweryfikuj pinezkę),
 - treści stron, zdjęcia do galerii,
+- **obszar obsługi** (*Ustawienia → Dane firmy*, miejscowości w osobnych liniach): trafia do danych strukturalnych dla wyszukiwarek (`areaServed`); puste pole jest pomijane. Po wdrożeniu migracji `settings_area_served` na istniejącej bazie jest puste, więc uzupełnij je (wartość startowa z seeda: Białe Błota, Bydgoszcz). Lista kontrolna wizytówki Google: `docs/audyt/seo.md` (4.3),
 - **Polityka prywatności i Regulamin rezerwacji** – to szablony; uzupełnij odbiorców danych (hosting, dostawca poczty)
   i daj je do weryfikacji prawnikowi,
 - okres retencji danych (automatyczna anonimizacja).

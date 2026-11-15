@@ -245,3 +245,48 @@ Trasa `/premium` leży w `(public-detail)` (notFound). Spec nazwany `02b`, bo `0
 Brak błędów blokujących w Premium. Uwaga niska: BŁĄD-1 (CSP `style-src-attr`, `next-route-announcer`) nadal otwarty, bez zmian względem etapu 1.
 
 Werdykt etapu 3 (tester): PRZEPUSZCZAM.
+
+### Etap 4, część SEO i treści (`mp/etap-4-seo`), 2026-11-15
+
+Zakres: MP-037, MP-038, MP-039, MP-020 (pasek mobilny), MP-040 (część), MP-042, MP-043 (pomiar i analiza), MP-049. Pominięte do decyzji: MP-041, MP-044, MP-045, MP-046, MP-047, MP-048.
+Testy: `tests/e2e/05-seo.spec.ts` (T8.4, T8.5, MP-037/038/049), `tests/e2e/02c-seo-data.spec.ts` (MP-040/042; przed `03`, bo `03` zamyka pulę `db.ts`), `tests/unit/jsonld.test.ts`, `tests/unit/lastmod.test.ts`, `tests/unit/contrast.test.ts` (T8.8: `fg/muted/accent-text` na `surface-2`; para `disabled` pominięta, bo to przyciemnienie przez `opacity`, nie osobny kolor). T8.6 i T8.7 nie dotyczą tego zakresu (MP-041, MP-047).
+
+| ID | Wynik | Dowód |
+|---|---|---|
+| MP-037 / T8.5 | PASS | title <= 60, description 140-160, unikalne, canonical, 10 stron; H1 z miejscowością na `/kontakt`, `/dla-firm`, `/czesci-zamienne` |
+| MP-038 | PASS | brak "historię napraw", "priorytet", "pilnujemy terminów" na `/dla-firm`; treść do zatwierdzenia przez właściciela (MP-058 przywraca po etapie 5) |
+| MP-039 / T8.4 | PASS | baner 390x844: 330 px (39,1%) przed, 180 px (21,3%) po; 768: 17,8%, 1280: 22,8%; fokus na banerze, po decyzji na `#tresc`, brak pułapki fokusu |
+| MP-020 | PASS | "Umów wizytę" w jednej linii przy 360 i 390 px |
+| MP-040 | PASS | JSON-LD tylko na `/` i `/kontakt`, `hasOfferCatalog` bez cen, `areaServed` z Settings, puste pole pomijane |
+| MP-042 | PASS | `lastmod` z `AuditLog` (regulamin i polityka bez daty), `/favicon.ico` 200 |
+| MP-049 / T8.8 | PASS | jedna linia pulsu na `/rezerwacja`; nowe pary kontrastu zielone; `aria-label` paska postępu |
+
+Komendy (E2E z `E2E_DB_PORT=54401 E2E_DB_DIR=.pgdata-e2e-s`): `npm run lint` PASS; `npm run typecheck` PASS; `npm test` PASS (9 plików, 84 testy); `npm run test:int` PASS (8 plików, 95 testów); `npm run test:e2e` PASS (44/44, 1,4 min); `npm run build` PASS.
+
+### Pomiary MP-043 (zmierzone, nie docelowe)
+
+Warunki: 2026-11-15 ok. 17:00 (CET), Lighthouse 13.6.0, mobile (emulacja Moto G, throttling symulowany: RTT 150 ms, 1,6 Mb/s, CPU x4), Chromium z Playwrighta w trybie `--headless`, jedna maszyna (Windows, łącze domowe). Produkcja: wyłącznie żądania GET na `https://motopuls.onrender.com/`, po rozgrzaniu. Lokalnie: build produkcyjny (`next build` + serwer na `http://localhost:3100`, baza testowa), czyli BEZ HTTPS i bez Cloudflare; wyników lokalnych nie porównuj wprost z produkcją. Przebiegi, w których Lighthouse zgłosił błąd NO_NAVSTART (3 z 9 na produkcji), pominięto.
+
+**TTFB (curl).** Produkcja, pierwsze żądanie po bezczynności (zimny start): 17,99 s (całość 18,19 s); kolejne dwa: 0,97 s i 0,65 s. Rozgrzana, 3 próby na stronę: `/` 0,39 / 0,25 / 0,33 s; `/klimatyzacja` 0,25 / 0,14 / 0,28 s; `/rezerwacja` 0,26 / 0,16 / 0,20 s. Lokalnie: 9-68 ms.
+
+**Produkcja (stary kod; po wdrożeniu tej gałęzi pomiar do powtórzenia).**
+
+| Strona | Wydajność | LCP (ms) | TBT (ms) | CLS | a11y / zalecane praktyki / SEO |
+|---|---|---|---|---|---|
+| `/` (2 przebiegi) | 99, 99 | 1239, 1200 | 137, 119 | 0, 0 | 100 / 100 / 100 |
+| `/klimatyzacja` (3) | 100, 100, 100 | 973, 990, 999 | 46, 38, 55 | 0, 0, 0,053 | 100 / 100 / 100 |
+| `/rezerwacja` (2) | 88, 88 | 3559, 3563 | 190, 161 | 0, 0,013 | 96 / 96 / 100 |
+
+**Lokalnie przed (commit 169749c) i po (HEAD), 4 przebiegi każdy.**
+
+| Strona | Przed: wydajność / LCP / CLS | Po: wydajność / LCP / CLS |
+|---|---|---|
+| `/` | 95, 69, 69, 100 / 1087, 4432, 4344, 954 / 0, 0,224, 0,224, 0,002 | 98, 99, 99, 74 / 951, 945, 943, 4348 / 0,002, 0, 0,002, 0,224 |
+| `/klimatyzacja` | 99 x4 / 893-954 / 0,051-0,063 | 99 x4 / 915-943 / 0,047-0,063 |
+| `/rezerwacja` | 82-83 / 4408-4415 / 0,010-0,017; a11y 96 | 79-83 / 4264-4421 / 0,017; a11y 100 |
+
+Wnioski [FAKT z pomiarów]: (1) zmiany SEO nie pogorszyły wyników (w granicach rozrzutu); (2) `/` ma dwumodalny wynik, w obu seriach 1-2 przebiegi z LCP ok. 4,3 s i CLS 0,224 (przyczyna nie ustalona, niezależna od tej gałęzi); (3) na `/rezerwacja` LCP to akapit banera cookies, rysowany dopiero po hydratacji (serwer nie zna zgody), stąd LCP 3,5-4,4 s; baner jest teraz o połowę niższy, ale nadal jest elementem LCP; (4) a11y 96 na produkcji to `aria-progressbar-name` (naprawione w tej gałęzi); `inspector-issues` (CSP) wpływa na praktyki 96 na `/rezerwacja`.
+
+Czcionki [FAKT, `/` lokalnie, 593 KB całości]: 4 pliki woff2 ok. 312 KB: Archivo latin 91 KB i latin-ext 87 KB, Inter latin 49 KB i latin-ext 86 KB; `font-display: swap` w 10 regułach; podzbiór latin-ext jest potrzebny dla polskich znaków. Skrypty JS ok. 150 KB (transfer), CSS 8,7 KB.
+
+Rekomendacje (BEZ zmian w CSP i cache, do decyzji i przeglądu `mp-bezpieczenstwo`): [REKOMENDACJA] (a) renderować baner po stronie serwera na podstawie ciasteczka (`cookies()` w layoutcie, który i tak jest dynamiczny), żeby LCP nie czekał na hydratację; (b) preload tylko `inter-latin` i `archivo-latin` (reszta ładowana na żądanie) oraz rozważyć węższy zakres osi `wdth` Archivo (najcięższe pliki); (c) zbadać źródło CLS 0,224 na `/` (kandydaci: wymiana czcionki, baner, hero) w Chrome DevTools Performance; (d) zimny start Render nadal 18 s (MP-004, D-9); (e) po wdrożeniu powtórzyć ten pomiar na produkcji.

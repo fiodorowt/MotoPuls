@@ -100,7 +100,17 @@ Typ AutoRepair, `@id` i ReserveAction są poprawne; wyjście zweryfikowane na pr
 7. Usługi (bez cen, jeśli cennik niegotowy), opis, własne zdjęcia, logo.
 8. Odpowiadać na opinie; nie kupować ani nie pisać opinii.
 9. Spójność z Facebookiem (`facebookUrl`) i katalogami.
-10. Po uzyskaniu URL: dodać do sameAs i hasMap w JSON-LD.
+10. Po uzyskaniu URL: dodać do sameAs i hasMap w JSON-LD (wymaga nowego pola w Settings, D-17; do czasu URL kod tych pól nie emituje).
+11. Spójność NAP (nazwa, adres, telefon) między wizytówką, stroną (Ustawienia w panelu), Facebookiem i katalogami: porównać znak po znaku (np. "ul. Modra 26", format telefonu).
+12. Opinie: poprosić prawdziwych klientów o opinię w Google (link z wizytówki), odpowiadać na każdą; nie wpisywać opinii na stronie, dopóki nie są potwierdzone (`Testimonial`).
+13. W panelu (Ustawienia, Dane firmy) uzupełnić "Obszar obsługi" (areaServed w danych dla wyszukiwarek, D-21) i potwierdzić współrzędne (D-12); obecne to PLACEHOLDER z seeda i trafiają do JSON-LD (`geo`).
+14. Stan wizytówki (istnieje/zweryfikowana/kategorie/zdjęcia): DO UZUPEŁNIENIA przez właściciela, kod niczego nie zakłada.
+
+### 4.4 Stan wdrożenia etapu 4 (2026-11-15, gałąź `mp/etap-4-seo`)
+- [FAKT] MP-037: title <= 60 i description 140-160 znaków na 10 stronach publicznych (test E2E T8.5, `tests/e2e/05-seo.spec.ts`); `/kontakt` przez `generateMetadata` z Settings; miejscowość (`Settings.city`) w H1 `/kontakt`, `/dla-firm`, `/czesci-zamienne`. Pozostałe strony mają nazwę miejscowości wpisaną w tytuł (odmiana "w Białych Błotach" w opisach), więc po zmianie miejscowości w panelu wymagają ręcznej korekty metadanych.
+- [FAKT] MP-040 (część): `hasOfferCatalog` z aktywnych `Service` (bez cen), `areaServed` z `Settings.areaServed` (migracja addytywna; puste = pominięte; NA PRODUKCJI po wdrożeniu migracji pole jest puste, dopóki właściciel go nie uzupełni w panelu), logo PNG (`/apple-icon.png`), pełny AutoRepair tylko na `/` i `/kontakt`. Brak `hasMap` i nowego `sameAs` (D-17).
+- [FAKT] MP-042: `lastModified` w sitemapie z ostatniego wpisu w `AuditLog` (edycje usług, treści, danych firmy, godzin), bo `Service`/`ContentBlock` nie mają `updatedAt`, a `Settings.updatedAt` zmienia cron (przypomnienie PENDING); regulamin i polityka bez daty. `/favicon.ico` z `icon.svg` (`scripts/build-favicon.ts`).
+- NIE wdrożone (czekają na decyzje): MP-041 (D-16), MP-044 (D-15), MP-045 (D-13/D-6), MP-046, MP-047 (D-14), MP-048.
 
 ## 5. Szybkość i mobile
 
@@ -111,7 +121,7 @@ Typ AutoRepair, `@id` i ReserveAction są poprawne; wyjście zweryfikowane na pr
 - [REKOMENDACJA] (a) plan bez usypiania lub keep-alive na `/api/health` (trasa istnieje: `src/app/api/health/route.ts`; czy jest pingowana: DO UZUPEŁNIENIA); (b) własna domena z 301, aktualizacja `APP_URL`.
 
 ### 5.2 Core Web Vitals
-- LCP/CLS/INP: DO UZUPEŁNIENIA (PageSpeed API 429; Lighthouse nie uruchamiano). [REKOMENDACJA] Lighthouse mobile po rozgrzaniu instancji, 3 przebiegi dla /, /klimatyzacja, /rezerwacja.
+- [FAKT] Pomiar Lighthouse (mobile, przebiegi po rozgrzaniu) z 2026-11-15: patrz `docs/testy.md`, sekcja "Pomiary MP-043". W audycie początkowym: DO UZUPEŁNIENIA (PageSpeed API 429).
 - [FAKT] Rozmiar HTML: strona główna ok. 81 KB, /uslugi ok. 84 KB.
 
 ### 5.3 Obrazy
