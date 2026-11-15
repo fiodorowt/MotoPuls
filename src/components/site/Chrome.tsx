@@ -136,14 +136,14 @@ export function Footer({ settings }: { settings: Settings }) {
 export function MobileBar({ settings }: { settings: Settings }) {
   const phone = settings.phones[0];
   return (
-    <div className="border-line bg-bg fixed inset-x-0 bottom-0 z-40 grid grid-cols-2 gap-2 border-t p-2 md:hidden">
+    <div className="border-line bg-bg fixed inset-x-0 bottom-0 z-40 grid grid-cols-[2fr_3fr] gap-2 border-t p-2 md:hidden">
       {phone && (
-        <a href={telHref(phone)} className="btn btn-secondary">
+        <a href={telHref(phone)} className="btn btn-secondary px-3 whitespace-nowrap">
           <Icon name="phone" />
           Zadzwoń
         </a>
       )}
-      <Link href="/rezerwacja" className="btn btn-primary">
+      <Link href="/rezerwacja" className="btn btn-primary px-3 whitespace-nowrap">
         <Icon name="calendar" />
         Umów wizytę
       </Link>
