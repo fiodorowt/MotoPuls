@@ -4,7 +4,7 @@ out/
 .env
 .env.local
 .pgdata/
-.pgdata-e2e/
+.pgdata-e2e*/
 .mail-outbox/
 uploads/
 backups/
@@ -18,3 +18,4 @@ next-env.d.ts
 # testy E2E
 .next-e2e
 .e2e-uploads
+.pgdata-int/

@@ -77,6 +77,14 @@ export default async function SettingsPage() {
                 defaultValue={settings.retentionMonths}
                 hint="Po tylu miesiącach bez wizyt dane klienta są anonimizowane"
               />
+              <Field
+                label="Przypomnienie o oczekujących (godz.)"
+                name="pendingReminderHours"
+                required
+                inputMode="numeric"
+                defaultValue={settings.pendingReminderHours}
+                hint="Codzienny mail do warsztatu o rezerwacjach czekających dłużej niż tyle godzin. 0 = wyłączone. Nic nie jest anulowane automatycznie"
+              />
             </div>
             <CheckboxField name="autoConfirm" defaultChecked={settings.autoConfirm}>
               Potwierdzaj rezerwacje online automatycznie (bez tej opcji każdą wizytę potwierdza pracownik)

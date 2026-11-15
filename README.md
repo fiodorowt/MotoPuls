@@ -65,7 +65,9 @@ Strona: <http://localhost:3000>, panel: <http://localhost:3000/admin>.
 wygenerowane hasło**. Przy pierwszym logowaniu panel wymusza konfigurację 2FA (aplikacja typu Google Authenticator,
 Aegis, 2FAS) i zmianę hasła. Seed można uruchamiać wielokrotnie – nie nadpisuje istniejących danych.
 
-Bez `SMTP_HOST` e‑maile nie są wysyłane, tylko zapisywane jako pliki JSON w `.mail-outbox/`.
+Bez `SMTP_HOST` e‑maile nie są wysyłane, tylko zapisywane jako pliki JSON w `.mail-outbox/`. W produkcji (`NODE_ENV=production`)
+oznacza to, że klienci nie dostają żadnych wiadomości: aplikacja zapisuje wtedy jednorazowe ostrzeżenie w logu, właściciel
+widzi czerwony komunikat na pulpicie panelu, a `GET /api/health` zwraca `"mail": "disabled"` (`"ok"` przy SMTP, `"outbox"` w dev/testach).
 
 ## Zmienne środowiskowe
 
@@ -104,11 +106,20 @@ npm test
 ```
 
 ```bash
+npm run test:int
+```
+
+```bash
 npm run test:e2e
 ```
 
 - **Testy jednostkowe (Vitest):** wyliczanie slotów i kolizji, strefa Europe/Warsaw i zmiany czasu (DST),
   kontrast kolorów obu motywów (WCAG AA), eksport CSV (ochrona przed formułami), pliki `.ics`.
+- **Testy integracyjne (Vitest, `tests/integration`):** logika rezerwacji na prawdziwym PostgreSQL: współbieżne rezerwacje i
+  kolizje (`BookingSlot` unikalny po `bay + slotStart`), przejścia statusów, okno anulowania, przypomnienia (także przy
+  zmianie czasu), odrzucanie z powodem, przypomnienie o zaległych oczekujących, ostrzeżenia przy przenoszeniu poza
+  godziny. Skrypt sam stawia jednorazową bazę embedded‑postgres (port 54331, katalog `.pgdata-int`), stosuje migracje i
+  seed, a po zakończeniu ją usuwa; wiadomości e‑mail są przechwytywane w pamięci. Nie dotyka bazy deweloperskiej ani E2E.
 - **Testy E2E (Playwright):** pełna rezerwacja (5 kroków → potwierdzenie → e‑mail z `.ics`), nagłówki bezpieczeństwa
   i CSP, pierwsze logowanie do panelu (2FA + wymuszona zmiana hasła), wszystkie sekcje panelu, potwierdzenie wizyty,
   eksport CSV, wylogowanie, ponowne logowanie kodem TOTP.
@@ -180,7 +191,7 @@ Dlatego zalecany jest wariant VPS.
 
 | Endpoint | Co robi | Jak często |
 | --- | --- | --- |
-| `POST /api/cron/reminders` | przypomnienia e‑mail dzień przed wizytą (wysyła dopiero po 9:00, każde tylko raz) | co godzinę |
+| `POST /api/cron/reminders` | przypomnienia e‑mail dzień przed wizytą (wysyła dopiero po 9:00, każde tylko raz) oraz zbiorczy mail do warsztatu o rezerwacjach `PENDING` czekających dłużej niż próg z ustawień (domyślnie 12 h, `0` = wyłączone; maks. raz na dobę, nic nie jest anulowane automatycznie) | co godzinę |
 | `POST /api/cron/maintenance` | anonimizacja nieaktywnych klientów po okresie retencji (ustawienia panelu), czyszczenie wygasłych sesji, tokenów i liczników | co godzinę lub raz dziennie |
 
 W Docker Compose robi to usługa `cron`. Ręcznie / z zewnętrznego harmonogramu:
@@ -251,6 +262,7 @@ src/app/api/       cron, health
 src/components/    komponenty UI (formularze, kreator rezerwacji, panel)
 src/lib/           logika: sloty i rezerwacje, auth, e-mail, RODO, walidacja (Zod), antyspam
 src/proxy.ts       CSP z nonce i nagłówki dla każdego żądania
-tests/unit/        Vitest
+tests/unit/        Vitest (czyste funkcje)
+tests/integration/ Vitest na prawdziwej bazie (npm run test:int)
 tests/e2e/         Playwright
 ```

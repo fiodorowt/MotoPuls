@@ -45,6 +45,7 @@ const bookingConfigSchema = z.object({
   minLeadHours: f.int(0, 240, "Najwcześniejszy termin (godziny)"),
   maxDaysAhead: f.int(1, 365, "Kalendarz do przodu (dni)"),
   retentionMonths: f.int(6, 120, "Retencja danych (miesiące)"),
+  pendingReminderHours: f.int(0, 168, "Przypomnienie o oczekujących (godziny)"),
 });
 
 export async function saveBookingConfig(_prev: FormState, formData: FormData): Promise<FormState> {

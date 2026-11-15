@@ -119,3 +119,26 @@ export function freeBays(start: Date, durationMin: number, bays: number, occupie
   }
   return free;
 }
+
+/**
+ * Ostrzeżenia dla terminu wybranego ręcznie przez pracownika (np. przy przenoszeniu wizyty):
+ * dzień nieczynny, święto, dzień wolny albo wizyta wykraczająca poza godziny pracy.
+ * Pusta lista = termin mieści się w grafiku.
+ */
+export function scheduleWarnings(input: {
+  start: Date;
+  end: Date;
+  hours: DayHours | undefined;
+  closedDates: ReadonlySet<string>;
+}): string[] {
+  const date = warsawDate(input.start);
+  const closed = whyClosed(date, input.hours, input.closedDates);
+  if (closed) return [`${date}: ${closed}`];
+  const hours = input.hours;
+  if (!hours) return [`${date}: Nieczynne`];
+  const { open, close } = dayWindow(date, hours);
+  if (input.start < open || input.end > close) {
+    return [`Wizyta wykracza poza godziny pracy (${hours.open}-${hours.close})`];
+  }
+  return [];
+}

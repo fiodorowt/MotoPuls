@@ -29,7 +29,9 @@ async function sendTemplate(key: string, to: string, vars: TemplateVars, footer:
   const stored = await db.emailTemplate.findUnique({ where: { key } });
   const template = stored ?? DEFAULT_TEMPLATES[key];
   if (!template) throw new Error(`Brak szablonu e-mail: ${key}`);
-  const text = fillTemplate(template.body, vars);
+  let text = fillTemplate(template.body, vars).replace(/\n{3,}/g, "\n\n");
+  // Szablon zapisany w bazie przed dodaniem {{powod}} nadal ma pokazać powód odrzucenia.
+  if (vars.powod && !/\{\{\s*powod\s*\}\}/.test(template.body)) text = `${text.trim()}\n\n${vars.powod}`;
   // Nagłówek tematu nie może zawierać znaków nowej linii (wstrzykiwanie nagłówków).
   const subject = fillTemplate(template.subject, vars).replace(/[\r\n]+/g, " ").slice(0, 200);
   return sendMail({ to, subject, text: `${text}\n\n--\n${footer}`, html: renderHtml(text, footer), ics });
@@ -55,6 +57,7 @@ export async function notifyBooking(bookingId: string, kind: BookingMailKind, al
     uslugi: services,
     pojazd: vehicle,
     status: BOOKING_STATUS_LABEL[booking.status],
+    powod: booking.cancelReason ? `Powód: ${booking.cancelReason}` : "",
     link: `${appUrl}/rezerwacja/${booking.token}`,
     anulowanie_do: formatDateTimePl(new Date(booking.startsAt.getTime() - settings.cancelHoursBefore * 3_600_000)),
   };
@@ -105,4 +108,31 @@ export async function notifyInquiry(type: InquiryType, name: string): Promise<vo
 export async function sendPasswordReset(to: string, link: string): Promise<void> {
   const company = await companyVars();
   await sendTemplate("password_reset", to, { ...company.vars, link }, company.footer);
+}
+
+/** Zbiorczy mail do warsztatu o rezerwacjach czekających na decyzję (bez danych osobowych klientów). */
+export async function notifyPendingDigest(
+  bookings: { id: string; startsAt: Date; createdAt: Date; vehicle: { make: string; model: string }; services: { name: string }[] }[],
+  thresholdHours: number,
+): Promise<void> {
+  const company = await companyVars();
+  const appUrl = env().APP_URL;
+  const list = bookings
+    .map(
+      (b) =>
+        `- ${formatDateTimePl(b.startsAt)}: ${b.vehicle.make} ${b.vehicle.model}, ${b.services.map((s) => s.name).join(", ")}\n  ${appUrl}/admin/rezerwacje/${b.id}`,
+    )
+    .join("\n");
+  await sendTemplate(
+    "workshop_pending_digest",
+    company.notifyTo,
+    {
+      ...company.vars,
+      liczba: String(bookings.length),
+      godziny: String(thresholdHours),
+      lista: list,
+      link: `${appUrl}/admin/rezerwacje?status=PENDING`,
+    },
+    company.footer,
+  );
 }

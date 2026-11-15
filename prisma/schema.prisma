@@ -138,20 +138,20 @@ model ServiceCategory {
 }
 
 model Service {
-  id                  String          @id @default(cuid())
+  id                  String           @id @default(cuid())
   categoryId          String
-  category            ServiceCategory @relation(fields: [categoryId], references: [id])
+  category            ServiceCategory  @relation(fields: [categoryId], references: [id])
   name                String
-  description         String          @default("")
+  description         String           @default("")
   /// Ceny orientacyjne w pełnych złotych
   priceFrom           Int?
   priceTo             Int?
   durationMin         Int
-  active              Boolean         @default(true)
+  active              Boolean          @default(true)
   /// Czy przy rezerwacji pytać o rodzaj czynnika klimatyzacji
-  requiresRefrigerant Boolean         @default(false)
-  sortOrder           Int             @default(0)
-  createdAt           DateTime        @default(now())
+  requiresRefrigerant Boolean          @default(false)
+  sortOrder           Int              @default(0)
+  createdAt           DateTime         @default(now())
   bookings            BookingService[]
 
   @@index([categoryId])
@@ -226,26 +226,28 @@ model Note {
 // ---------- Rezerwacje ----------
 
 model Booking {
-  id              String        @id @default(cuid())
+  id              String           @id @default(cuid())
   /// Nieodgadywalny token do linku klienta (256 bitów losowości)
-  token           String        @unique
-  status          BookingStatus @default(PENDING)
-  source          BookingSource @default(ONLINE)
+  token           String           @unique
+  status          BookingStatus    @default(PENDING)
+  source          BookingSource    @default(ONLINE)
   startsAt        DateTime
   endsAt          DateTime
   bay             Int
   customerId      String
-  customer        Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customer        Customer         @relation(fields: [customerId], references: [id], onDelete: Cascade)
   vehicleId       String
-  vehicle         Vehicle       @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  vehicle         Vehicle          @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
   description     String?
   internalNote    String?
   refrigerant     Refrigerant?
   termsAcceptedAt DateTime?
   reminderSentAt  DateTime?
   cancelledAt     DateTime?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  /// Powód odrzucenia/anulowania przez warsztat (pokazywany klientowi w e-mailu)
+  cancelReason    String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
   services        BookingService[]
   slots           BookingSlot[]
 
@@ -317,30 +319,34 @@ model OpeningHours {
 // ---------- Konfiguracja i treści ----------
 
 model Settings {
-  id                 Int      @id @default(1)
-  brandName          String
-  legalName          String
-  nip                String
-  street             String
-  postalCode         String
-  city               String
-  phones             String[]
-  email              String
-  facebookUrl        String
-  latitude           Float
-  longitude          Float
-  directions         String
-  tagline            String
-  about              String
-  bays               Int      @default(2)
-  autoConfirm        Boolean  @default(false)
-  cancelHoursBefore  Int      @default(24)
-  minLeadHours       Int      @default(12)
-  maxDaysAhead       Int      @default(60)
+  id                   Int       @id @default(1)
+  brandName            String
+  legalName            String
+  nip                  String
+  street               String
+  postalCode           String
+  city                 String
+  phones               String[]
+  email                String
+  facebookUrl          String
+  latitude             Float
+  longitude            Float
+  directions           String
+  tagline              String
+  about                String
+  bays                 Int       @default(2)
+  autoConfirm          Boolean   @default(false)
+  cancelHoursBefore    Int       @default(24)
+  minLeadHours         Int       @default(12)
+  maxDaysAhead         Int       @default(60)
   /// Po ilu miesiącach od ostatniej wizyty anonimizować dane klienta
-  retentionMonths    Int      @default(36)
-  pricingNote        String   @default("")
-  updatedAt          DateTime @updatedAt
+  retentionMonths      Int       @default(36)
+  /// Po ilu godzinach nieobsłużona rezerwacja PENDING trafia do codziennego przypomnienia dla warsztatu (0 = wyłączone)
+  pendingReminderHours Int       @default(12)
+  /// Kiedy ostatnio wysłano zbiorcze przypomnienie o PENDING (maks. raz na dobę)
+  pendingDigestSentAt  DateTime?
+  pricingNote          String    @default("")
+  updatedAt            DateTime  @updatedAt
 }
 
 model Testimonial {

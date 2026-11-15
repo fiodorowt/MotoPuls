@@ -48,9 +48,16 @@ function useMove() {
   const [result, setResult] = useState<FormState | null>(null);
   const [pending, startTransition] = useTransition();
 
-  function run(action: () => Promise<FormState>) {
+  /** Przy ostrzeżeniu (poza godzinami, święto) pytamy o potwierdzenie i ponawiamy z `force` (D-19 a). */
+  function run(action: (force: boolean) => Promise<FormState>) {
     setMovingId(null);
-    startTransition(async () => setResult(await action()));
+    startTransition(async () => {
+      let outcome = await action(false);
+      if (outcome.needsConfirm && window.confirm(`${outcome.message}
+
+Przenieść mimo to?`)) outcome = await action(true);
+      setResult(outcome);
+    });
   }
 
   function droppedId(event: DragEvent): string | null {
@@ -167,7 +174,7 @@ export function DayBoard({ date, bays, rows }: { date: string; bays: number; row
                         onDragOver={allowDrop}
                         onDrop={(event) => {
                           const id = move.droppedId(event);
-                          if (id) move.run(() => moveBookingTo(id, iso, bay));
+                          if (id) move.run((force) => moveBookingTo(id, iso, bay, force));
                         }}
                       >
                         {move.movingId ? (
@@ -176,7 +183,7 @@ export function DayBoard({ date, bays, rows }: { date: string; bays: number; row
                             className="hover:bg-accent hover:text-accent-ink text-muted block h-8 w-full text-xs"
                             onClick={() => {
                               const id = move.movingId;
-                              if (id) move.run(() => moveBookingTo(id, iso, bay));
+                              if (id) move.run((force) => moveBookingTo(id, iso, bay, force));
                             }}
                           >
                             <span className="sr-only">Przenieś na </span>
@@ -218,7 +225,7 @@ export function WeekBoard({ days }: { days: WeekDay[] }) {
             onDragOver={allowDrop}
             onDrop={(event) => {
               const id = move.droppedId(event);
-              if (id) move.run(() => moveBookingToDay(id, day.date));
+              if (id) move.run((force) => moveBookingToDay(id, day.date, force));
             }}
           >
             <h3 className="text-sm">
@@ -233,7 +240,7 @@ export function WeekBoard({ days }: { days: WeekDay[] }) {
                 className="btn btn-secondary btn-sm mt-2 w-full"
                 onClick={() => {
                   const id = move.movingId;
-                  if (id) move.run(() => moveBookingToDay(id, day.date));
+                  if (id) move.run((force) => moveBookingToDay(id, day.date, force));
                 }}
               >
                 Przenieś tutaj<span className="sr-only"> ({day.label})</span>

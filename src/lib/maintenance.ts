@@ -1,6 +1,6 @@
 import { audit } from "./audit";
 import { db } from "./db";
-import { notifyBooking } from "./email/notify";
+import { notifyBooking, notifyPendingDigest } from "./email/notify";
 import { addDays, warsawDate, warsawTime, warsawToUtc } from "./time";
 
 /** Harmonogram może odpytywać co godzinę – przypomnień nie wysyłamy jednak w nocy. */
@@ -48,7 +48,7 @@ export async function anonymizeCustomer(customerId: string, actor: { email: stri
       },
     });
     await tx.vehicle.updateMany({ where: { customerId }, data: { plate: "—", vin: null, mileage: null } });
-    await tx.booking.updateMany({ where: { customerId }, data: { description: null, internalNote: null } });
+    await tx.booking.updateMany({ where: { customerId }, data: { description: null, internalNote: null, cancelReason: null } });
     await tx.note.deleteMany({ where: { customerId } });
     // Aktywne wizyty tracą sens bez danych kontaktowych – zwalniamy ich terminy.
     const active = await tx.booking.findMany({
@@ -97,4 +97,40 @@ export async function cleanup(now: Date = new Date()): Promise<void> {
     db.rateLimit.deleteMany({ where: { windowStart: { lt: new Date(now.getTime() - 86_400_000) } } }),
     db.inquiry.deleteMany({ where: { status: "CLOSED", updatedAt: { lt: inquiryCutoff } } }),
   ]);
+}
+
+/**
+ * Zbiorcze przypomnienie dla warsztatu o rezerwacjach PENDING czekających dłużej niż próg z ustawień
+ * (D-18 a). Maksymalnie raz na dobę (czasu warszawskiego), nie przed 9:00, bez automatycznego anulowania.
+ * Zwraca liczbę rezerwacji w wysłanym mailu (0 = nic nie wysłano).
+ */
+export async function sendPendingDigest(now: Date = new Date()): Promise<number> {
+  if (warsawTime(now) < REMINDERS_FROM) return 0;
+  const settings = await db.settings.findUniqueOrThrow({ where: { id: 1 } });
+  if (settings.pendingReminderHours <= 0) return 0;
+
+  const stale = await db.booking.findMany({
+    where: { status: "PENDING", createdAt: { lte: new Date(now.getTime() - settings.pendingReminderHours * 3_600_000) } },
+    include: { vehicle: true, services: true },
+    orderBy: { startsAt: "asc" },
+    take: 50,
+  });
+  if (stale.length === 0) return 0;
+
+  // Warunkowe zajęcie dnia: przy równoległych uruchomieniach tylko jedno wyśle mail.
+  const today = warsawToUtc(warsawDate(now), "00:00");
+  const { count } = await db.settings.updateMany({
+    where: { id: 1, OR: [{ pendingDigestSentAt: null }, { pendingDigestSentAt: { lt: today } }] },
+    data: { pendingDigestSentAt: now },
+  });
+  if (count !== 1) return 0;
+
+  await notifyPendingDigest(stale, settings.pendingReminderHours);
+  await audit({
+    actor: "system",
+    action: "booking.pending_digest",
+    entity: "Booking",
+    details: { count: stale.length, thresholdHours: settings.pendingReminderHours },
+  });
+  return stale.length;
 }

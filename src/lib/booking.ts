@@ -8,6 +8,7 @@ import {
   availableStarts,
   freeBays,
   roundUpToSlot,
+  scheduleWarnings,
   slotKey,
   slotStartsFor,
   whyClosed,
@@ -24,6 +25,13 @@ export class SlotTakenError extends Error {
 
 /** Błąd, którego treść można bezpiecznie pokazać użytkownikowi. */
 export class BookingError extends Error {}
+
+/** Termin poza grafikiem: wymaga potwierdzenia pracownika (`force`), nie jest twardą blokadą (D-19 a). */
+export class MoveWarningError extends BookingError {
+  constructor(readonly warnings: string[]) {
+    super(`Termin poza grafikiem: ${warnings.join('; ')}.`);
+  }
+}
 
 async function scheduleConfig() {
   const [settings, hours] = await Promise.all([
@@ -242,7 +250,9 @@ export async function changeBookingStatus(
   bookingId: string,
   to: BookingStatus,
   actor: { email: string; id?: string },
+  options: { reason?: string | null; auditAction?: string } = {},
 ): Promise<void> {
+  const reason = to === "CANCELLED" ? (options.reason?.trim() || null) : null;
   await db.$transaction(async (tx) => {
     const booking = await tx.booking.findUnique({ where: { id: bookingId } });
     if (!booking) throw new BookingError("Nie znaleziono rezerwacji.");
@@ -250,7 +260,11 @@ export async function changeBookingStatus(
     // Warunek na poprzedni status chroni przed dwiema równoległymi zmianami.
     const { count } = await tx.booking.updateMany({
       where: { id: bookingId, status: booking.status },
-      data: { status: to, cancelledAt: to === "CANCELLED" ? new Date() : undefined },
+      data: {
+        status: to,
+        cancelledAt: to === "CANCELLED" ? new Date() : undefined,
+        cancelReason: reason ?? undefined,
+      },
     });
     if (count !== 1) throw new BookingError("Status został zmieniony w międzyczasie. Odśwież stronę.");
     // Anulowanie i nieobecność zwalniają termin.
@@ -259,13 +273,30 @@ export async function changeBookingStatus(
   await audit({
     actor: actor.email,
     userId: actor.id,
-    action: "booking.status",
+    action: options.auditAction ?? "booking.status",
     entity: "Booking",
     entityId: bookingId,
-    details: { to },
+    // The free-text reason may contain personal data, so the audit log only records that one was given.
+    // The text itself lives in Booking.cancelReason, which anonymisation clears.
+    details: reason ? { to, hasReason: true } : { to },
   });
   const mail = STATUS_MAIL[to];
   if (mail) await notifyBooking(bookingId, mail);
+}
+
+/**
+ * Odrzucenie oczekującej rezerwacji (D-10 a): to samo co anulowanie (CANCELLED, termin wolny),
+ * ale z powodem, który trafia do e-maila dla klienta i do dziennika.
+ */
+export async function rejectBooking(
+  bookingId: string,
+  reason: string | null,
+  actor: { email: string; id?: string },
+): Promise<void> {
+  const booking = await db.booking.findUnique({ where: { id: bookingId }, select: { status: true } });
+  if (!booking) throw new BookingError("Nie znaleziono rezerwacji.");
+  if (booking.status !== "PENDING") throw new BookingError("Odrzucić można tylko rezerwację oczekującą na potwierdzenie.");
+  await changeBookingStatus(bookingId, "CANCELLED", actor, { reason, auditAction: "booking.reject" });
 }
 
 export function canCustomerCancel(
@@ -277,11 +308,11 @@ export function canCustomerCancel(
   return booking.startsAt.getTime() - now.getTime() >= cancelHoursBefore * 3_600_000;
 }
 
-export async function cancelByCustomer(token: string): Promise<void> {
+export async function cancelByCustomer(token: string, now: Date = new Date()): Promise<void> {
   const booking = await db.booking.findUnique({ where: { token } });
   const settings = await db.settings.findUniqueOrThrow({ where: { id: 1 } });
   if (!booking) throw new BookingError("Nie znaleziono rezerwacji.");
-  if (!canCustomerCancel(booking, settings.cancelHoursBefore)) {
+  if (!canCustomerCancel(booking, settings.cancelHoursBefore, now)) {
     throw new BookingError("Tej rezerwacji nie można już anulować online. Zadzwoń do warsztatu.");
   }
   await changeBookingStatus(booking.id, "CANCELLED", { email: "klient" });
@@ -293,6 +324,7 @@ export async function moveBooking(
   newStart: Date,
   actor: { email: string; id: string },
   preferredBay?: number,
+  options: { force?: boolean } = {},
 ): Promise<void> {
   const booking = await db.booking.findUnique({ where: { id: bookingId } });
   if (!booking) throw new BookingError("Nie znaleziono rezerwacji.");
@@ -304,6 +336,19 @@ export async function moveBooking(
   const durationMin = Math.round((booking.endsAt.getTime() - booking.startsAt.getTime()) / 60_000);
   const newEnd = new Date(newStart.getTime() + durationMin * 60_000);
   const slots = slotStartsFor(newStart, durationMin);
+
+  // Ostrzeżenie (nie blokada): poza godzinami, w święto lub w dzień wolny trzeba potwierdzić.
+  const [hours, closedRows] = await Promise.all([
+    db.openingHours.findUnique({ where: { weekday: isoWeekday(warsawDate(newStart)) } }),
+    db.closedDay.findMany({ where: { date: new Date(`${warsawDate(newStart)}T00:00:00Z`) } }),
+  ]);
+  const warnings = scheduleWarnings({
+    start: newStart,
+    end: newEnd,
+    hours: hours ?? undefined,
+    closedDates: new Set(closedRows.map((c) => c.date.toISOString().slice(0, 10))),
+  });
+  if (warnings.length > 0 && !options.force) throw new MoveWarningError(warnings);
 
   const allBays = Array.from({ length: settings.bays }, (_, i) => i + 1);
   const first = preferredBay && allBays.includes(preferredBay) ? preferredBay : booking.bay;
@@ -325,7 +370,12 @@ export async function moveBooking(
         action: "booking.move",
         entity: "Booking",
         entityId: bookingId,
-        details: { from: booking.startsAt.toISOString(), to: newStart.toISOString(), bay },
+        details: {
+          from: booking.startsAt.toISOString(),
+          to: newStart.toISOString(),
+          bay,
+          ...(warnings.length > 0 ? { outsideHours: true, warnings } : {}),
+        },
       });
       await notifyBooking(bookingId, booking.status === "CONFIRMED" ? "booking_confirmed" : "booking_received");
       return;

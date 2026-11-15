@@ -9,7 +9,7 @@ export interface TemplateDef {
 const FOOTER_VARS = "{{firma}}, {{adres}}, {{telefony}}";
 
 export const TEMPLATE_VARIABLES =
-  "{{imie}}, {{termin}}, {{uslugi}}, {{pojazd}}, {{status}}, {{link}}, {{anulowanie_do}}, " + FOOTER_VARS;
+  "{{imie}}, {{termin}}, {{uslugi}}, {{pojazd}}, {{status}}, {{link}}, {{anulowanie_do}}, {{powod}}, " + FOOTER_VARS;
 
 export const DEFAULT_TEMPLATES: Record<string, TemplateDef> = {
   booking_received: {
@@ -61,6 +61,8 @@ W razie pytań zadzwoń: {{telefony}}`,
 
 rezerwacja na {{termin}} ({{pojazd}}) została anulowana.
 
+{{powod}}
+
 Jeśli chcesz umówić nowy termin, zrób to online lub zadzwoń: {{telefony}}`,
   },
   booking_reminder: {
@@ -89,6 +91,15 @@ Usługi: {{uslugi}}
 Pojazd: {{pojazd}}
 
 Panel: {{link}}`,
+  },
+  workshop_pending_digest: {
+    label: "Warsztat: przypomnienie o rezerwacjach czekających na decyzję",
+    subject: "Do potwierdzenia: {{liczba}} rezerwacji czeka dłużej niż {{godziny}} h",
+    body: `Te rezerwacje czekają na potwierdzenie lub odrzucenie dłużej niż {{godziny}} h (termin jest dla nich zablokowany):
+
+{{lista}}
+
+Wszystkie oczekujące: {{link}}`,
   },
   workshop_inquiry: {
     label: "Warsztat: nowe zapytanie z formularza",
