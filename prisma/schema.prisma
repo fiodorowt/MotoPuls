@@ -41,6 +41,7 @@ enum InquiryType {
   PARTS
   FLEET
   CONTACT
+  PREMIUM
 }
 
 enum InquiryStatus {
@@ -346,6 +347,14 @@ model Settings {
   /// Kiedy ostatnio wysłano zbiorcze przypomnienie o PENDING (maks. raz na dobę)
   pendingDigestSentAt  DateTime?
   pricingNote          String    @default("")
+  /// Moto Puls Premium: strona /premium i formularz widoczne tylko po włączeniu (domyślnie wyłączone do decyzji D-3)
+  premiumEnabled       Boolean   @default(false)
+  /// Tekst o cenie Premium pokazywany zamiast kwoty (D-3)
+  premiumPriceNote     String    @default("Cena ustalana indywidualnie")
+  /// Opcjonalny odbiór auta ze wskazanego miejsca (D-4)
+  premiumPickupEnabled Boolean   @default(false)
+  /// Zasięg i koszt odbioru: DO UZUPEŁNIENIA przez właściciela (D-4)
+  premiumPickupNote    String    @default("")
   updatedAt            DateTime  @updatedAt
 }
 

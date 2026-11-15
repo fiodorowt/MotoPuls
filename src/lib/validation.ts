@@ -144,3 +144,31 @@ export function fieldErrors(error: z.ZodError): FieldErrors {
   }
   return out;
 }
+
+/**
+ * Zgłoszenie Moto Puls Premium (MP-033). Pola odbioru auta są dozwolone wyłącznie przy włączonej fladze
+ * `Settings.premiumPickupEnabled`; przy wyłączonej serwer odrzuca zgłoszenie z adresem (T5.3).
+ * Termin jest tylko informacją dla właściciela, nie rezerwacją.
+ */
+export const premiumSchema = (pickupEnabled: boolean) =>
+  z
+    .object({
+      ...inquiryBase,
+      vehicle: text(2, 100, "Pojazd"),
+      message: text(10, 2000, "Opis"),
+      preferredDate: optionalText(100),
+      pickup: optionalText(10),
+      pickupAddress: optionalText(200),
+    })
+    .superRefine((data, ctx) => {
+      if (!pickupEnabled) {
+        if (data.pickup || data.pickupAddress) {
+          ctx.addIssue({ code: "custom", path: ["pickupAddress"], message: "Odbiór auta nie jest obecnie dostępny" });
+        }
+        return;
+      }
+      if (data.pickup && (data.pickupAddress ?? "").length < 5) {
+        ctx.addIssue({ code: "custom", path: ["pickupAddress"], message: "Adres odbioru: podaj ulicę, numer i miejscowość" });
+      }
+    })
+    .transform((data) => ({ ...data, pickupAddress: data.pickup ? data.pickupAddress : undefined }));
