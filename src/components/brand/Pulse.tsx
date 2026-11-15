@@ -44,6 +44,7 @@ export function PulseProgress({ step, total = 5 }: { step: number; total?: numbe
   return (
     <div
       role="progressbar"
+      aria-label="Postęp rezerwacji"
       aria-valuemin={1}
       aria-valuemax={total}
       aria-valuenow={step}

@@ -41,6 +41,13 @@ export default async function SettingsPage() {
               <Field label="Długość geogr." name="longitude" required inputMode="decimal" defaultValue={settings.longitude} />
             </div>
             <TextAreaField label="Wskazówki dojazdu" name="directions" required rows={3} defaultValue={settings.directions} maxLength={1000} />
+            <TextAreaField
+              label="Obszar obsługi (każda miejscowość w osobnej linii)"
+              name="areaServed"
+              rows={3}
+              defaultValue={settings.areaServed.join("\n")}
+              hint="Trafia do danych dla wyszukiwarek (areaServed). Puste = pominięte."
+            />
             <Field label="Hasło na stronie głównej" name="tagline" required defaultValue={settings.tagline} maxLength={200} />
             <TextAreaField label="O firmie" name="about" required rows={6} defaultValue={settings.about} maxLength={4000} />
             <Field label="Uwaga pod cennikiem" name="pricingNote" defaultValue={settings.pricingNote} maxLength={500} />

@@ -65,3 +65,27 @@ export async function premiumInquiries(): Promise<{ type: string; data: Record<s
 export async function setPremiumTexts(priceNote: string, pickupNote: string): Promise<void> {
   await pool.query(`UPDATE "Settings" SET "premiumPriceNote" = $1, "premiumPickupNote" = $2 WHERE id = 1`, [priceNote, pickupNote]);
 }
+
+/** Wpis w dzienniku zmian z podaną datą (sitemap bierze z niego `lastModified`). */
+export async function insertAudit(action: string, createdAt: string): Promise<void> {
+  await pool.query(`INSERT INTO "AuditLog" (id, actor, action, entity, "createdAt") VALUES ($1, 'e2e-seo', $2, 'E2E', $3)`, [
+    `e2e${randomBytes(9).toString("hex")}`,
+    action,
+    createdAt,
+  ]);
+}
+
+/** Obszar obsługi w Settings (D-21): tablica miejscowości, pusta = pominięta w JSON-LD. */
+export async function setAreaServed(areas: string[]): Promise<void> {
+  await pool.query(`UPDATE "Settings" SET "areaServed" = $1 WHERE id = 1`, [areas]);
+}
+
+/** Adres firmy w Settings (metadane /kontakt mają pochodzić z bazy, nie z kodu). */
+export async function setCompanyAddress(street: string, city: string): Promise<void> {
+  await pool.query(`UPDATE "Settings" SET street = $1, city = $2 WHERE id = 1`, [street, city]);
+}
+
+export async function coordinates(): Promise<{ latitude: number; longitude: number }> {
+  const { rows } = await pool.query(`SELECT latitude, longitude FROM "Settings" WHERE id = 1`);
+  return rows[0];
+}

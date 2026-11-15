@@ -42,6 +42,11 @@ describe.each([
     expect(contrast(color(text), color(background))).toBeGreaterThanOrEqual(4.5);
   });
 
+  // MP-049 / T8.8: karty i podświetlenia używają tła --surface-2 (np. hover przycisków drugorzędnych)
+  it.each([["fg"], ["muted"], ["accent-text"]])("tekst --%s na --surface-2 ma co najmniej 4,5:1", (text) => {
+    expect(contrast(color(text), color("surface-2"))).toBeGreaterThanOrEqual(4.5);
+  });
+
   it("ciemny tekst na pomarańczowym przycisku ma co najmniej 4,5:1 (także w stanie hover)", () => {
     expect(contrast(color("accent-ink"), color("accent"))).toBeGreaterThanOrEqual(4.5);
     expect(contrast(color("accent-ink"), color("accent-hover"))).toBeGreaterThanOrEqual(4.5);

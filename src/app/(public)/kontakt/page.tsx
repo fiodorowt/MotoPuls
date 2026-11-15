@@ -1,21 +1,25 @@
 import type { Metadata } from "next";
+import { AutoRepairJsonLd } from "@/components/site/AutoRepairJsonLd";
 import { ContactForm } from "@/components/site/InquiryForms";
 import { ContactDetails, Directions, PageHeader, Section } from "@/components/site/Sections";
 import { issueFormToken } from "@/lib/antispam";
 import { fullAddress, getOpeningHours, getSettings } from "@/lib/settings";
 
-export const metadata: Metadata = {
-  title: "Kontakt i dojazd – Moto Puls, ul. Modra 26, Białe Błota",
-  description:
-    "Kontakt z warsztatem Moto Puls: telefon, e-mail, godziny otwarcia i dojazd. Białe Błota pod Bydgoszczą, przy drodze S10.",
-  alternates: { canonical: "/kontakt" },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSettings();
+  return {
+    title: `Kontakt i dojazd – ${settings.city}`,
+    description: `Kontakt z warsztatem ${settings.brandName}: telefon, e-mail, godziny otwarcia i dojazd. ${fullAddress(settings)}. Napisz lub zadzwoń, sprawdź dojazd.`,
+    alternates: { canonical: "/kontakt" },
+  };
+}
 
 export default async function ContactPage() {
   const [settings, hours] = await Promise.all([getSettings(), getOpeningHours()]);
   return (
     <>
-      <PageHeader eyebrow="Kontakt" title="Kontakt i dojazd" lead={`${settings.brandName}, ${fullAddress(settings)}`} />
+      <AutoRepairJsonLd />
+      <PageHeader eyebrow="Kontakt" title={`Kontakt i dojazd – ${settings.city}`} lead={`${settings.brandName}, ${fullAddress(settings)}`} />
       <Section id="dane" title="Dane kontaktowe">
         <div className="grid gap-10 lg:grid-cols-2">
           <ContactDetails settings={settings} hours={hours} />

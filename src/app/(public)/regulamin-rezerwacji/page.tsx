@@ -6,7 +6,8 @@ import { fullAddress, getSettings } from "@/lib/settings";
 
 export const metadata: Metadata = {
   title: "Regulamin rezerwacji online",
-  description: "Zasady rezerwowania wizyt online w warsztacie Moto Puls.",
+  description:
+    "Regulamin rezerwacji online w warsztacie Moto Puls w Białych Błotach: zasady rezerwowania, zmiany i odwołania wizyty, reklamacje oraz dane osobowe.",
   alternates: { canonical: "/regulamin-rezerwacji" },
 };
 

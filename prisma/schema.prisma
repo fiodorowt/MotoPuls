@@ -333,7 +333,9 @@ model Settings {
   latitude             Float
   longitude            Float
   directions           String
-  tagline              String
+  /// Obszar obsługi w JSON-LD (areaServed); puste = pominięte. Edytuje właściciel (D-21)
+  areaServed           String[]  @default([])
+  tagline             String
   about                String
   bays                 Int       @default(2)
   autoConfirm          Boolean   @default(false)

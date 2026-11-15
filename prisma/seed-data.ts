@@ -21,6 +21,8 @@ export const SETTINGS = {
   longitude: 17.9285,
   directions:
     "Znajdziesz nas w Białych Błotach pod Bydgoszczą, tuż przy drodze S10 (Bydgoszcz–Poznań), w rejonie ulic Szubińskiej, Czerskiej i Centralnej – niedaleko Hotelu Sylwana. Z S10 skręć w Centralną, a następnie w Modrą.",
+  // Wartość startowa z dawnego zapisu w kodzie; właściciel poprawia ją w panelu (D-21)
+  areaServed: ["Białe Błota", "Bydgoszcz"],
   tagline: "Puls Twojego auta",
   about:
     "Moto Puls to miejsce, które powstało z myślą o Tobie. Wychodzimy naprzeciw najbardziej wymagającym klientom. Wszystkie naprawy wykonujemy ze szczególną starannością, zachowując przy tym indywidualne podejście do każdego powierzonego nam pojazdu.",
@@ -137,7 +139,7 @@ export const CATEGORIES: SeedCategory[] = [
     icon: "fleet",
     summary: "Stała opieka serwisowa nad autami firmowymi.",
     description:
-      "Prowadzimy obsługę serwisową samochodów firmowych: przeglądy, naprawy bieżące, klimatyzację i diagnostykę. Ustalamy stałe warunki współpracy, pilnujemy terminów i prowadzimy historię każdego pojazdu.",
+      "Prowadzimy obsługę serwisową samochodów firmowych: przeglądy, naprawy bieżące, klimatyzację i diagnostykę. Ustalamy stałe warunki współpracy, a wizyty pojazdów zapisujemy w ewidencji warsztatu.",
     services: [],
   },
 ];
@@ -148,6 +150,6 @@ export const CONTENT_BLOCKS = [
   { key: "why_3", label: "Dlaczego my – 3", title: "Wycena przed naprawą", body: "Zanim zaczniemy, mówimy, co jest do zrobienia i ile to będzie kosztować." },
   { key: "why_4", label: "Dlaczego my – 4", title: "Wszystkie marki", body: "Obsługujemy samochody osobowe i dostawcze do 3,5 t niezależnie od marki." },
   { key: "ac_highlight", label: "Wyróżnik klimatyzacji", title: "Klimatyzacja: R134a i R1234yf", body: "Masz nowsze auto? Najpewniej jeździ na czynniku R1234yf, którego nie obsłuży każdy warsztat. Nasza stacja TEXA Konfort 715R „2 Gas Ready” pracuje z oboma czynnikami." },
-  { key: "fleet_intro", label: "Floty – wstęp", title: "Serwis aut firmowych", body: "Auto firmowe ma jeździć, a nie stać. Ustalimy stałe warunki, priorytetowe terminy i jedną osobę do kontaktu." },
+  { key: "fleet_intro", label: "Floty – wstęp", title: "Serwis aut firmowych", body: "Auto firmowe ma jeździć, a nie stać. Ustalimy stałe warunki współpracy, terminy uzgodnimy indywidualnie, a Ty dostaniesz jedną osobę do kontaktu." },
   { key: "parts_intro", label: "Części – wstęp", title: "Części zamienne", body: "Podaj dane auta i nazwę części. Sprawdzimy dostępność i odezwiemy się z ceną." },
 ];

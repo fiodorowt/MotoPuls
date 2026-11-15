@@ -27,6 +27,10 @@ const companySchema = z.object({
   latitude: z.coerce.number({ error: "Szerokość geograficzna: podaj liczbę" }).min(-90).max(90),
   longitude: z.coerce.number({ error: "Długość geograficzna: podaj liczbę" }).min(-180).max(180),
   directions: f.str(2, 1000, "Wskazówki dojazdu"),
+  areaServed: z
+    .string()
+    .transform((v) => [...new Set(v.split(/[\n,;]/).map((p) => p.trim()).filter(Boolean))])
+    .pipe(z.array(z.string().max(80, "Nazwa miejscowości: najwyżej 80 znaków")).max(20, "Obszar obsługi: najwyżej 20 pozycji")),
   tagline: f.str(2, 200, "Hasło"),
   about: f.str(2, 4000, "O firmie"),
   pricingNote: z.string().trim().max(500, "Uwaga do cennika: najwyżej 500 znaków").default(""),
@@ -36,6 +40,7 @@ export async function saveCompany(_prev: FormState, formData: FormData): Promise
   return runAction(formData, { schema: companySchema, owner: true }, async (data, user) => {
     await db.settings.update({ where: { id: 1 }, data });
     await audit({ actor: user.email, userId: user.id, action: "settings.company", entity: "Settings" });
+    revalidatePath("/", "layout");
   });
 }
 

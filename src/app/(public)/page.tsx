@@ -2,15 +2,16 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Icon, isIconName } from "@/components/Icon";
 import { HeroPulse, PulseDivider } from "@/components/brand/Pulse";
+import { AutoRepairJsonLd } from "@/components/site/AutoRepairJsonLd";
 import { ContactDetails, CtaBand, Directions, Picture, Section, categoryHref } from "@/components/site/Sections";
 import { getCategories, getTestimonials } from "@/lib/catalog";
 import { formatPhone, telHref } from "@/lib/labels";
 import { getContent, getOpeningHours, getSettings } from "@/lib/settings";
 
 export const metadata: Metadata = {
-  title: { absolute: "Moto Puls – warsztat samochodowy Białe Błota k. Bydgoszczy | mechanik, klimatyzacja" },
+  title: { absolute: "Moto Puls – warsztat samochodowy Białe Błota k. Bydgoszczy" },
   description:
-    "Warsztat samochodowy Moto Puls w Białych Błotach pod Bydgoszczą: mechanika i elektromechanika, serwis klimatyzacji R134a i R1234yf, diagnostyka komputerowa, części i obsługa flot. Umów wizytę online.",
+    "Warsztat samochodowy Moto Puls w Białych Błotach pod Bydgoszczą: mechanika, elektromechanika, klimatyzacja R134a i R1234yf, diagnostyka. Umów wizytę online.",
   alternates: { canonical: "/" },
 };
 
@@ -29,6 +30,7 @@ export default async function HomePage() {
 
   return (
     <>
+      <AutoRepairJsonLd />
       <section className="relative overflow-hidden">
         <div className="container-page pt-12 pb-6 sm:pt-20">
           <p className="eyebrow">{settings.tagline}</p>
