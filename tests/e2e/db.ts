@@ -60,3 +60,8 @@ export async function premiumInquiries(): Promise<{ type: string; data: Record<s
   const { rows } = await pool.query(`SELECT type::text AS type, data FROM "Inquiry" WHERE type = 'PREMIUM'`);
   return rows;
 }
+
+/** Ustawia teksty Premium w bazie testowej (cena i uwaga o odbiorze mają pochodzić wyłącznie z Settings). */
+export async function setPremiumTexts(priceNote: string, pickupNote: string): Promise<void> {
+  await pool.query(`UPDATE "Settings" SET "premiumPriceNote" = $1, "premiumPickupNote" = $2 WHERE id = 1`, [priceNote, pickupNote]);
+}

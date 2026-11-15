@@ -2,7 +2,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { expect, test, type Browser } from "@playwright/test";
-import { SESSION_COOKIE, auditCount, createStaffSession, premiumInquiries, rowCount, setPremiumFlags } from "./db";
+import { SESSION_COOKIE, auditCount, createStaffSession, premiumInquiries, rowCount, setPremiumFlags, setPremiumTexts } from "./db";
 
 const run = Date.now().toString(36);
 let sessions = 0;
@@ -109,6 +109,19 @@ test.describe.serial("Moto Puls Premium", () => {
     await expect(page.getByLabel("Adres odbioru")).toHaveCount(0);
     await page.getByLabel("Chcę zgłosić odbiór auta ze wskazanego miejsca").check();
     await expect(page.getByLabel("Adres odbioru")).toBeVisible();
+  });
+
+  test("MP-032 cena i uwaga o odbiorze pochodzą z Settings (zmiana w bazie widoczna na stronie)", async ({ page }) => {
+    try {
+      await setPremiumFlags(true, true);
+      await setPremiumTexts("Od 777 zł (test E2E)", "Odbiór do 15 km (test E2E)");
+      await page.goto("/premium");
+      await expect(page.getByText("Od 777 zł (test E2E)")).toBeVisible();
+      await page.getByLabel("Chcę zgłosić odbiór auta ze wskazanego miejsca").check();
+      await expect(page.getByText("Odbiór do 15 km (test E2E)")).toBeVisible();
+    } finally {
+      await setPremiumTexts("Cena ustalana indywidualnie", "");
+    }
   });
 
   for (const width of [390, 768, 1280]) {

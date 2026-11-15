@@ -113,6 +113,28 @@ describe("MP-032 ustawienia Premium", () => {
   });
 });
 
+describe("MP-033 walidacja Zod po stronie serwera", () => {
+  it("brak zgody RODO, zły e-mail, za krótki opis lub brak pojazdu: odrzucone, nic nie zapisane ani wysłane", async () => {
+    for (const bad of [{ privacy: "" } as Record<string, string>, { email: "nie-email" }, { message: "x" }, { vehicle: "" }]) {
+      const result = await sendPremiumInquiry(empty, form(bad));
+      expect(result.ok, JSON.stringify(bad)).toBe(false);
+    }
+    expect(await db.inquiry.count()).toBe(0);
+    expect(outbox).toHaveLength(0);
+  });
+
+  it("brak lub zbyt świeży form_token (bot): odrzucone", async () => {
+    expect((await sendPremiumInquiry(empty, form({ form_token: "" }))).ok).toBe(false);
+    expect((await sendPremiumInquiry(empty, form({ form_token: token(0) }))).ok).toBe(false);
+    expect(await db.inquiry.count()).toBe(0);
+  });
+
+  it("adres odbioru bez zaznaczenia odbioru przy fladze wyłączonej: odrzucony", async () => {
+    expect((await sendPremiumInquiry(empty, form({ pickupAddress: "Bydgoszcz, Dworcowa 1" }))).ok).toBe(false);
+    expect(await db.inquiry.count()).toBe(0);
+  });
+});
+
 describe("T5.5 antyspam", () => {
   it("honeypot wypełniony: odrzucone", async () => {
     const result = await sendPremiumInquiry(empty, form({ website: "http://spam.example" }));
