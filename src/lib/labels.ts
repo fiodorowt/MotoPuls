@@ -2,7 +2,7 @@
 
 export type BookingStatus = "PENDING" | "CONFIRMED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
 export type InquiryStatus = "NEW" | "IN_PROGRESS" | "CLOSED";
-export type InquiryType = "PARTS" | "FLEET" | "CONTACT";
+export type InquiryType = "PARTS" | "FLEET" | "CONTACT" | "PREMIUM";
 export type Refrigerant = "R134A" | "R1234YF" | "UNKNOWN";
 export type VehicleType = "CAR" | "VAN";
 
@@ -41,6 +41,7 @@ export const INQUIRY_TYPE_LABEL: Record<InquiryType, string> = {
   PARTS: "Części zamienne",
   FLEET: "Floty",
   CONTACT: "Kontakt",
+  PREMIUM: "Premium",
 };
 
 export const REFRIGERANT_LABEL: Record<Refrigerant, string> = {

@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, type ReactNode } from "react";
-import { sendContact, sendFleetInquiry, sendPartsInquiry } from "@/app/(public)/actions";
+import { useActionState, useState, type ReactNode } from "react";
+import { sendContact, sendFleetInquiry, sendPartsInquiry, sendPremiumInquiry } from "@/app/(public)/actions";
 import { AntispamFields, CheckboxField, Field, FormAlert, SubmitButton, TextAreaField } from "@/components/form";
 import { EMPTY_FORM, type FormState } from "@/lib/form-state";
 
@@ -106,6 +106,51 @@ export function FleetForm(props: FormProps) {
             defaultValue={v.message}
             error={e.message}
           />
+        </>
+      )}
+    </InquiryShell>
+  );
+}
+
+function PremiumPickup({ note, defaultChecked, address, error }: { note: string; defaultChecked: boolean; address?: string; error?: string }) {
+  const [checked, setChecked] = useState(defaultChecked);
+  return (
+    <div className="space-y-4">
+      <CheckboxField name="pickup" checked={checked} onChange={(event) => setChecked(event.target.checked)}>
+        Chcę zgłosić odbiór auta ze wskazanego miejsca
+      </CheckboxField>
+      {note && <p className="text-muted -mt-2 text-sm">{note}</p>}
+      {checked && (
+        <Field
+          label="Adres odbioru"
+          name="pickupAddress"
+          required
+          autoComplete="street-address"
+          hint="Ulica, numer i miejscowość."
+          defaultValue={address}
+          error={error}
+        />
+      )}
+    </div>
+  );
+}
+
+/** Pola odbioru pojawiają się tylko przy włączonej fladze `Settings.premiumPickupEnabled` (przekazanej z serwera). */
+export function PremiumForm({ pickupEnabled, pickupNote, ...props }: FormProps & { pickupEnabled: boolean; pickupNote: string }) {
+  return (
+    <InquiryShell {...props} action={sendPremiumInquiry} submitLabel="Wyślij zgłoszenie Premium">
+      {({ values: v = {}, errors: e = {} }) => (
+        <>
+          <Field label="Pojazd" name="vehicle" required hint="Marka, model i rocznik." defaultValue={v.vehicle} error={e.vehicle} />
+          <TextAreaField label="Opis potrzeby" name="message" required rows={4} defaultValue={v.message} error={e.message} />
+          <Field
+            label="Preferowany termin"
+            name="preferredDate"
+            hint="Informacyjnie. Zgłoszenie nie rezerwuje terminu; ustalimy go z Tobą indywidualnie."
+            defaultValue={v.preferredDate}
+            error={e.preferredDate}
+          />
+          {pickupEnabled && <PremiumPickup note={pickupNote} defaultChecked={v.pickup === "on"} address={v.pickupAddress} error={e.pickupAddress} />}
         </>
       )}
     </InquiryShell>

@@ -6,7 +6,7 @@ import { requireOwner } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { getOpeningHours, getSettings } from "@/lib/settings";
 import { WEEKDAYS_PL, formatDatePl, warsawDate } from "@/lib/time";
-import { addClosedDay, removeClosedDay, saveBookingConfig, saveCompany, saveOpeningHours } from "./actions";
+import { addClosedDay, removeClosedDay, saveBookingConfig, saveCompany, saveOpeningHours, savePremium } from "./actions";
 
 export const metadata: Metadata = { title: "Ustawienia" };
 
@@ -90,6 +90,38 @@ export default async function SettingsPage() {
               Potwierdzaj rezerwacje online automatycznie (bez tej opcji każdą wizytę potwierdza pracownik)
             </CheckboxField>
             <ActionButton>Zapisz ustawienia rezerwacji</ActionButton>
+          </ActionForm>
+        </Section>
+
+        <Section title="Moto Puls Premium">
+          <p className="text-muted mb-4 text-sm">
+            Zgłoszenia Premium trafiają do skrzynki zapytań i wymagają Twojego indywidualnego potwierdzenia; nie rezerwują terminu i nie
+            zmieniają kalendarza. Włącz dopiero po zatwierdzeniu treści strony /premium oraz decyzji o cenie i odbiorze.
+          </p>
+          <ActionForm action={savePremium} className="space-y-4">
+            <CheckboxField name="premiumEnabled" defaultChecked={settings.premiumEnabled}>
+              Pokaż ofertę Premium na stronie i przyjmuj zgłoszenia
+            </CheckboxField>
+            <Field
+              label="Tekst o cenie"
+              name="premiumPriceNote"
+              required
+              defaultValue={settings.premiumPriceNote}
+              maxLength={200}
+              hint="Wyświetlany zamiast kwoty. Kwoty podawaj tu dopiero po decyzji."
+            />
+            <CheckboxField name="premiumPickupEnabled" defaultChecked={settings.premiumPickupEnabled}>
+              Umożliwiaj zgłoszenie odbioru auta ze wskazanego miejsca
+            </CheckboxField>
+            <TextAreaField
+              label="Zasięg i koszt odbioru"
+              name="premiumPickupNote"
+              rows={3}
+              defaultValue={settings.premiumPickupNote}
+              maxLength={500}
+              hint="Pokazywane przy formularzu, gdy odbiór jest włączony. DO UZUPEŁNIENIA po decyzji."
+            />
+            <ActionButton>Zapisz ustawienia Premium</ActionButton>
           </ActionForm>
         </Section>
 

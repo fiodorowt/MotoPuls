@@ -133,6 +133,24 @@ export default async function HomePage() {
         </Section>
       )}
 
+      {settings.premiumEnabled && (
+        <Section id="premium" eyebrow="Moto Puls Premium" title="Obsługa organizowana indywidualnie">
+          {/* Treść DO ZATWIERDZENIA; cena wyłącznie z Settings. */}
+          <div className="card flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
+            <div className="max-w-2xl">
+              <p className="text-muted text-lg">
+                Zgłoszenie trafia do właściciela warsztatu, który ustala z Tobą szczegóły poza standardowym harmonogramem.
+              </p>
+              <p className="text-muted mt-2 text-sm">{settings.premiumPriceNote}</p>
+            </div>
+            <Link href="/premium" className="btn btn-secondary shrink-0">
+              <Icon name="bolt" />
+              Zobacz Premium
+            </Link>
+          </div>
+        </Section>
+      )}
+
       {testimonials.length > 0 && (
         <Section id="opinie" eyebrow="Opinie" title="Co mówią klienci">
           <ul className="grid gap-4 md:grid-cols-3">

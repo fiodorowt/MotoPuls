@@ -200,3 +200,48 @@ Zmiany testów wykonane przez testera: dodano `tests/e2e/02a-mail-warning.spec.t
 | UWAGA-3 | Informacja | `[mail] SMTP_HOST nie jest ustawiony` pojawia się w logu E2E, bo serwer E2E to build produkcyjny. Zgodne z kryterium MP-002 | log `npm run test:e2e` | OK |
 
 Werdykt etapu 1 (tester): PRZEPUSZCZAM, z warunkiem odnotowania BŁĘDU-1 (istnieje w main, nie jest regresją).
+
+### Etap 3 (`mp/etap-3-premium`) - implementacja `mp-premium`, 2026-11-15
+
+| Zadanie | Testy | Gdzie |
+|---|---|---|
+| MP-031, MP-032 | T5.4, domyślne wartości kolumn, wpis `settings.premium` | `tests/integration/premium.test.ts`, `tests/e2e/02b-premium.spec.ts` |
+| MP-033 | T5.2, T5.3, schemat Zod | `tests/unit/premium-schema.test.ts`, integracyjny + E2E |
+| MP-035 | T5.1 (także z terminem kolidującym) | `tests/integration/premium.test.ts` (równość pełnych wierszy Booking/BookingSlot/Block przed i po), E2E (liczności) |
+| MP-034 | T5.6 (390/768/1280, strona i sekcja na głównej), sitemap | `tests/e2e/02b-premium.spec.ts` (`/premium` ma 404 przy wyłączonej fladze, więc nie wchodzi do pętli T8.1) |
+| (T5.5) | honeypot, limit IP | `tests/integration/premium.test.ts` |
+
+Trasa `/premium` leży w `(public-detail)` (notFound). Spec nazwany `02b`, bo `03` zamyka wspólną pulę `db.ts`.
+
+### Etap 3: wyniki niezależnego testera (2026-11-15)
+
+Środowisko: `E2E_DB_PORT=54381 E2E_DB_DIR=.pgdata-e2e-tp`; dane wyłącznie testowe (baza jednorazowa, poczta do `.mail-outbox`/pamięci).
+
+| Kontrola | Wynik | Dowód |
+|---|---|---|
+| `npm run lint`, `typecheck` | PASS | bez ostrzeżeń |
+| `npm test` | PASS | 67/67 (6 plików) |
+| `npm run test:int` | PASS | 91/91 (7 plików; było 84, dopisano 7) |
+| `npm run build` | PASS | |
+| `npm run test:e2e` | PASS | 31/31 (było 30, dopisano 1) |
+
+| Kryterium | Werdykt | Dowód (asercje przeczytane) |
+|---|---|---|
+| T5.1 / MP-035 | PASS | `premium.test.ts`: `toEqual` pełnych wierszy Booking/BookingSlot/Block (z `updatedAt`) przed i po, termin kolidujący; E2E: liczności |
+| T5.2 mail do właściciela | PASS | outbox 1 mail do `warsztat@…`, temat „Premium”, tekst bez telefonu i e-maila klienta (integracyjny i E2E) |
+| Flagi domyślnie wyłączone | PASS | domyślne kolumny z `information_schema`; E2E: `/premium` 404, brak `#premium`, linku i wpisu w sitemap |
+| Cena i odbiór z Settings | PASS (dopisany test) | NOWY E2E: zmiana `premiumPriceNote`/`premiumPickupNote` w bazie widoczna na stronie |
+| T5.3 adres odbioru przy fladze off | PASS | integracyjny + schemat Zod; NOWY: sam `pickupAddress` bez zaznaczenia też odrzucony |
+| Edycja ustawień tylko OWNER | PASS (dopisany test) | NOWY `premium-owner.test.ts`: pracownik i brak sesji dostają redirect, ustawienia i dziennik bez zmian; właściciel zapisuje, wpis `settings.premium` bez treści notatek, Zod odrzuca za krótką cenę |
+| T5.5 antyspam / RODO / Zod | PASS (rozszerzone) | honeypot, limit 5/IP; NOWE: brak zgody, zły e-mail, krótki opis, brak pojazdu, brak/świeży `form_token` |
+| T5.6 responsywność | PASS (E2E) | 390/768/1280: `scrollWidth<=clientWidth`, 1 H1, CTA widoczne. Kontroli wzrokowej w przeglądarce nie wykonano (brak zrzutów), tylko pomiar |
+
+#### Flaky MP-019 (`03-booking-flows.spec.ts:133`, etap 1)
+- Seria 20x (1 worker): 80/80 PASS. Seria 40x z 6 workerami (obciążenie): 1 FAIL, 39 PASS, czyli test jest zależny od czasu, nie ma realnego błędu aplikacji.
+- Przyczyna [ZAŁOŻENIE, spójne z objawem]: loader pochodzi z prefetchu trasy. Test opóźnia tylko żądanie RSC bez nagłówka `next-router-prefetch`. Pod obciążeniem klik następuje, gdy prefetch `/rezerwacja` jeszcze trwa, więc nawigacja korzysta z niego i opóźniane żądanie nie powstaje; loader mignie krócej niż polling asercji.
+- Poprawka TESTU (zastosowana): przed `goto("/")` rejestracja `waitForResponse` prefetchu `/rezerwacja` i oczekiwanie na niego przed instalacją routingu i kliknięciem. Po poprawce: 60/60 PASS przy 6 workerach. Kod aplikacji bez zmian.
+
+#### Błędy
+Brak błędów blokujących w Premium. Uwaga niska: BŁĄD-1 (CSP `style-src-attr`, `next-route-announcer`) nadal otwarty, bez zmian względem etapu 1.
+
+Werdykt etapu 3 (tester): PRZEPUSZCZAM.

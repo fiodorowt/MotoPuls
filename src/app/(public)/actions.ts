@@ -8,7 +8,7 @@ import { notifyInquiry } from "@/lib/email/notify";
 import { formValues, type FormState } from "@/lib/form-state";
 import type { InquiryType } from "@/lib/labels";
 import { rateLimitByIp } from "@/lib/rate-limit";
-import { contactSchema, fieldErrors, fleetSchema, partsSchema } from "@/lib/validation";
+import { contactSchema, fieldErrors, fleetSchema, partsSchema, premiumSchema } from "@/lib/validation";
 
 const SENT = "Dziękujemy! Wiadomość dotarła – odezwiemy się najszybciej, jak to możliwe.";
 
@@ -67,5 +67,22 @@ export async function sendFleetInquiry(_prev: FormState, formData: FormData): Pr
     company: d.company,
     message: d.message ?? "",
     data: { NIP: d.nip ?? "—", "Liczba pojazdów": d.fleetSize },
+  }));
+}
+
+/** Moto Puls Premium: zwykłe zapytanie typu PREMIUM. Nie tworzy Booking/BookingSlot/Block (MP-035). */
+export async function sendPremiumInquiry(_prev: FormState, formData: FormData): Promise<FormState> {
+  const settings = await db.settings.findUniqueOrThrow({ where: { id: 1 } });
+  if (!settings.premiumEnabled) {
+    return { ok: false, message: "Obsługa Premium nie jest obecnie dostępna. Zadzwoń do nas, a ustalimy, jak pomóc.", values: formValues(formData) };
+  }
+  return handleInquiry("PREMIUM", premiumSchema(settings.premiumPickupEnabled), formData, (d) => ({
+    message: d.message,
+    data: {
+      Pojazd: d.vehicle,
+      "Preferowany termin": d.preferredDate ?? "—",
+      "Odbiór auta": d.pickup ? "Tak" : "Nie",
+      ...(d.pickup && d.pickupAddress ? { "Adres odbioru": d.pickupAddress } : {}),
+    },
   }));
 }

@@ -70,6 +70,14 @@ niezależną weryfikację.
 16. **Ostrzeżenie zamiast blokady przy przenoszeniu wizyt** (decyzja D-19 a): pracownik może po potwierdzeniu przenieść
     wizytę na święto lub poza godziny pracy; zdarzenie jest widoczne w dzienniku (`booking.move`, `outsideHours`).
 
+17. **Moto Puls Premium (MP-031..MP-035).** Zgłoszenie Premium to zwykłe `Inquiry(type=PREMIUM)`: nie tworzy ani nie zmienia
+    `Booking`, `BookingSlot` ani `Block` (pilnują tego testy `tests/integration/premium.test.ts` i `02b-premium.spec.ts`).
+    Adres odbioru auta to dane osobowe zapisane w `Inquiry.data`; nie trafia do e‑maila ani do `AuditLog` (mail zawiera
+    tylko imię). Dane podlegają ręcznemu usuwaniu zapytań w panelu; automatycznej retencji zapytań nadal brak.
+    Flagi `premiumEnabled` i `premiumPickupEnabled` są domyślnie wyłączone (decyzje D-3/D-4); serwer odrzuca zgłoszenia
+    przy wyłączonej fladze oraz payload z adresem odbioru przy wyłączonym odbiorze. Zmiany ustawień: tylko właściciel,
+    wpis `settings.premium` w dzienniku.
+
 ## Zgłaszanie problemów
 
 Podejrzenie luki zgłoś właścicielowi serwisu (adres e‑mail firmy w stopce strony) – nie publikuj szczegółów publicznie.

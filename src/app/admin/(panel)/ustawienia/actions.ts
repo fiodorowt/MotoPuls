@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { audit } from "@/lib/audit";
 import { f, runAction } from "@/lib/admin/run";
@@ -102,5 +103,27 @@ export async function removeClosedDay(_prev: FormState, formData: FormData): Pro
     await db.closedDay.delete({ where: { id } });
     await audit({ actor: user.email, userId: user.id, action: "closed_day.delete", entity: "ClosedDay", entityId: id });
     return { ok: true, message: "Usunięto." };
+  });
+}
+
+const premiumSchema = z.object({
+  premiumEnabled: f.checkbox,
+  premiumPriceNote: f.str(2, 200, "Tekst o cenie"),
+  premiumPickupEnabled: f.checkbox,
+  premiumPickupNote: z.string().trim().max(500, "Zasięg i koszt odbioru: najwyżej 500 znaków").default(""),
+});
+
+/** Moto Puls Premium (D-3, D-4): tylko właściciel, zmiana trafia do dziennika (bez treści notatek). */
+export async function savePremium(_prev: FormState, formData: FormData): Promise<FormState> {
+  return runAction(formData, { schema: premiumSchema, owner: true }, async (data, user) => {
+    await db.settings.update({ where: { id: 1 }, data });
+    await audit({
+      actor: user.email,
+      userId: user.id,
+      action: "settings.premium",
+      entity: "Settings",
+      details: { premiumEnabled: data.premiumEnabled, premiumPickupEnabled: data.premiumPickupEnabled },
+    });
+    revalidatePath("/", "layout");
   });
 }
