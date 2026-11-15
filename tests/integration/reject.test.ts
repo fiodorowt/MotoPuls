@@ -39,7 +39,9 @@ describe("T2.8 odrzucenie rezerwacji z powodem (MP-011)", () => {
 
     const log = await db.auditLog.findFirstOrThrow({ where: { action: "booking.reject", entityId: booking.id } });
     expect(log.actor).toBe(actor.email);
-    expect(JSON.stringify(log.details)).toContain("Brak części");
+    // Free-text reason must not leak into the audit log (it survives customer anonymisation).
+    expect(JSON.stringify(log.details)).not.toContain("Brak części");
+    expect(log.details).toMatchObject({ to: "CANCELLED", hasReason: true });
   });
 
   it("bez powodu: zdanie z powodem jest pomijane", async () => {

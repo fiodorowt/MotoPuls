@@ -276,7 +276,9 @@ export async function changeBookingStatus(
     action: options.auditAction ?? "booking.status",
     entity: "Booking",
     entityId: bookingId,
-    details: reason ? { to, reason } : { to },
+    // The free-text reason may contain personal data, so the audit log only records that one was given.
+    // The text itself lives in Booking.cancelReason, which anonymisation clears.
+    details: reason ? { to, hasReason: true } : { to },
   });
   const mail = STATUS_MAIL[to];
   if (mail) await notifyBooking(bookingId, mail);

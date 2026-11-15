@@ -64,8 +64,9 @@ niezależną weryfikację.
     więc rezerwacje działają, ale klienci nie dostają e‑maili. Ograniczenie: jednorazowy log ostrzegawczy (bez adresów),
     komunikat dla właściciela na pulpicie i flaga `mail` w `GET /api/health`. Wymaga skonfigurowania SMTP na hostingu.
 15. **Powód odrzucenia rezerwacji** (`Booking.cancelReason`) to tekst wpisany przez pracownika, trafia do e‑maila
-    klienta i do dziennika zdarzeń. Formularz prosi o niewpisywanie danych osobowych, ale tego nie wymusza.
-    Pole jest zerowane przy anonimizacji klienta (razem z `description` i `internalNote`).
+    klienta. Dziennik zdarzeń zapisuje tylko, że powód podano (`hasReason`), nie jego treść. Formularz prosi o
+    niewpisywanie danych osobowych, ale tego nie wymusza. Pole jest zerowane przy anonimizacji klienta
+    (razem z `description` i `internalNote`).
 16. **Ostrzeżenie zamiast blokady przy przenoszeniu wizyt** (decyzja D-19 a): pracownik może po potwierdzeniu przenieść
     wizytę na święto lub poza godziny pracy; zdarzenie jest widoczne w dzienniku (`booking.move`, `outsideHours`).
 
