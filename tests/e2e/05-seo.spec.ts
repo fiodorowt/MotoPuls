@@ -115,3 +115,8 @@ test("MP-049: na /rezerwacja jest jedna linia pulsu (bez podwójnego dividera)",
   await page.goto("/o-nas");
   await expect(page.locator("main svg.h-10.w-28")).toHaveCount(1);
 });
+
+test("MP-049: pasek postępu kreatora ma nazwę dostępną (Lighthouse aria-progressbar-name)", async ({ page }) => {
+  await page.goto("/rezerwacja");
+  await expect(page.getByRole("progressbar", { name: "Postęp rezerwacji" })).toBeVisible();
+});
